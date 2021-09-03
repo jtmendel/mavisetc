@@ -47,9 +47,10 @@ include mavisetc/data/mavis/mavis_AOM_throughput.csv
 include mavisetc/data/ref_sky_dark.fits
 include mavisetc/data/ref_sky_grey.fits
 include mavisetc/data/ref_sky_bright.fits
-include mavisetc/data/E2V_QE_290.csv
-include mavisetc/data/E2V_QE_250.csv
-include mavisetc/data/E2V_COSMOS.csv
+include mavisetc/data/E2V290_QE.csv
+include mavisetc/data/E2V250_QE.csv
+include mavisetc/data/STA1600_QE.csv
+include mavisetc/data/COSMOS_QE.csv
 include mavisetc/data/UT4_M1_reflect.csv
 include mavisetc/data/UT4_M2_reflect.csv
 include mavisetc/data/UT4_M3_reflect.csv

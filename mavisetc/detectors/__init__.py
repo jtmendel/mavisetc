@@ -1,3 +1,3 @@
 from .detectors import *
 
-__all__ = ["CCD250", "CCD290", "COSMOS"]
+__all__ = ["CCD250", "CCD290", "COSMOS", "STA1600"]
