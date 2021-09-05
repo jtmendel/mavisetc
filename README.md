@@ -6,7 +6,7 @@ Current version: v0.9.0a0
 # Installation
 If you have git installed, then you can obtain the software like so:
 ```
-git clone https:/github.com/jtmendel/mavisetc.git
+git clone https://github.com/jtmendel/mavisetc.git
 cd mavisetc
 python setup.py develop
 ```
