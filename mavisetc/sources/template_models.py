@@ -2,10 +2,11 @@ from __future__ import print_function
 import numpy as np
 import os
 import sys
-import fsps
-from astropy.io import fits
 
+from astropy.io import fits
 from astropy.cosmology import FlatLambdaCDM
+from ..filters import get_filter
+
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 __all__ = ['template_source', 'stellar_source']
@@ -73,21 +74,11 @@ class template_source():
         return
       
     def _set_filter(self, filt):
-        #fetch filter transmission curves from FSPS
+        #fetch filter transmission curves
         #normalize and interpolate onto template grid
 
-        #lookup for filter number given name
-        fsps_filts = fsps.list_filters()
-        filt_lookup = dict(zip(fsps_filts, range(1,len(fsps_filts)+1)))
-
-        #reference in case given a spitzer or mips filter...probably not an issue right now.
-        mips_dict = {90:23.68*1e4, 91:71.42*1e4, 92:155.9*1e4}
-        spitzer_dict = {53:3.550*1e4, 54:4.493*1e4, 55:5.731*1e4, 56:7.872*1e4}
-        
         #pull information for this filter
-        fobj = fsps.get_filter(filt)
-        filter_num = filt_lookup[filt]
-        
+        fobj = get_filter(filt)
         fwl, ftrans = fobj.transmission
         
         ftrans = np.maximum(ftrans, 0.)
@@ -99,14 +90,6 @@ class template_source():
         if ttrans < self.small_num: ttrans = 1.
         ntrans = np.maximum(trans_interp / ttrans, 0.0)
         
-        if filter_num in mips_dict:
-            td = np.trapz(((self.red_wavelength/mips_dict[filter_num])**(-2.))*ntrans/self.red_wavelength, self.red_wavelength)
-            ntrans = ntrans/max(1e-70,td)
-
-        if filter_num in spitzer_dict:
-            td = np.trapz(((self.red_wavelength/spitzer_dict[filter_num])**(-1.0))*ntrans/self.red_wavelength, self.red_wavelength)
-            ntrans = ntrans/max(1e-70,td)
-
         self.transmission = ntrans
         return 
 
@@ -131,8 +114,7 @@ class template_source():
                    redshift=1e-10, obs_mag=20., obs_band='sdss_r',
                    norm='point', **kwargs):
         """
-        valid args are those that match with parameters in 
-        python-fsps
+        Needs information
         """
         self.redshift = redshift
         self.obs_mag = obs_mag

@@ -9,5 +9,6 @@ from . import sky
 from . import utils
 from . import telescopes
 from . import detectors
+from . import filters
 
-__all__ = ['instruments', 'sources', 'sky', 'utils', 'telescopes', 'detectors']
+__all__ = ['instruments', 'sources', 'sky', 'utils', 'telescopes', 'detectors', 'filters']

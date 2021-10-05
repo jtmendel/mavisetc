@@ -2,4 +2,3 @@ numpy
 scipy
 astropy
 skycalc_cli
-python-fsps

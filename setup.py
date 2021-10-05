@@ -106,7 +106,8 @@ if __name__ == "__main__":
                   "mavisetc.detectors",
                   "mavisetc.sky",
                   "mavisetc.sources",
-                  "mavisetc.utils"],
+                  "mavisetc.utils",
+                  "mavisetc.filters"],
         license="LICENSE",
         description="MAVIS Exposure Time Calculator",
         package_data={"": ["README.md", "LICENSE"],
@@ -177,19 +178,43 @@ if __name__ == "__main__":
                               "mavisetc/data/kc_templates/starb4_template.fits",
                               "mavisetc/data/kc_templates/starb5_template.fits",
                               "mavisetc/data/kc_templates/starb6_template.fits",
+                              "mavisetc/data/filters/cousins_i.dat",
+                              "mavisetc/data/filters/cousins_r.dat",
+                              "mavisetc/data/filters/johnson_b.dat",
+                              "mavisetc/data/filters/johnson_u.dat",
+                              "mavisetc/data/filters/johnson_v.dat",
+                              "mavisetc/data/filters/sdss_g.dat",
+                              "mavisetc/data/filters/sdss_i.dat",
+                              "mavisetc/data/filters/sdss_r.dat",
+                              "mavisetc/data/filters/sdss_u.dat",
+                              "mavisetc/data/filters/sdss_z.dat",
+                              "mavisetc/data/filters/stromgren_b.dat",
+                              "mavisetc/data/filters/stromgren_u.dat",
+                              "mavisetc/data/filters/stromgren_v.dat",
+                              "mavisetc/data/filters/stromgren_y.dat",
+                              "mavisetc/data/filters/suprimecam_ia427.dat",
+                              "mavisetc/data/filters/suprimecam_ia445.dat",
+                              "mavisetc/data/filters/suprimecam_ia464.dat",
+                              "mavisetc/data/filters/suprimecam_ia484.dat",
+                              "mavisetc/data/filters/suprimecam_ia505.dat",
+                              "mavisetc/data/filters/suprimecam_ia527.dat",
+                              "mavisetc/data/filters/suprimecam_ia550.dat",
+                              "mavisetc/data/filters/suprimecam_ia574.dat",
+                              "mavisetc/data/filters/suprimecam_ia598.dat",
+                              "mavisetc/data/filters/suprimecam_ia624.dat",
+                              "mavisetc/data/filters/suprimecam_ia651.dat",
+                              "mavisetc/data/filters/suprimecam_ia679.dat",
+                              "mavisetc/data/filters/suprimecam_ia709.dat",
+                              "mavisetc/data/filters/suprimecam_ia738.dat",
+                              "mavisetc/data/filters/suprimecam_ia767.dat",
+                              "mavisetc/data/filters/suprimecam_ia797.dat",
+                              "mavisetc/data/filters/suprimecam_ia827.dat",
+                              "mavisetc/data/filters/suprimecam_ia856.dat",
+                              "mavisetc/data/filters/suprimecam_ia907.dat",
                               ]},
         include_package_data=True,
         zip_safe=False,
     )
-
-
-
-
-
-
-
-
-
 
 
 

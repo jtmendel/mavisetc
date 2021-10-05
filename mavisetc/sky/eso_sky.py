@@ -6,7 +6,7 @@ import os
 import sys
 
 from astropy.io import fits
-import fsps
+from ..filters import get_filter
 
 __all__ = ["sky_source"]
 
@@ -96,23 +96,12 @@ class sky_source():
         self.offline = offline
 
 
-
     def _set_filter(self, filt, wavelength):
         #fetch filter transmission curves from FSPS
         #normalize and interpolate onto template grid
 
-        #lookup for filter number given name
-        fsps_filts = fsps.list_filters()
-        filt_lookup = dict(zip(fsps_filts, range(1,len(fsps_filts)+1)))
-
-        #reference in case given a spitzer or mips filter...probably not an issue right now.
-        mips_dict = {90:23.68*1e4, 91:71.42*1e4, 92:155.9*1e4}
-        spitzer_dict = {53:3.550*1e4, 54:4.493*1e4, 55:5.731*1e4, 56:7.872*1e4}
-        
         #pull information for this filter
-        fobj = fsps.get_filter(filt)
-        filter_num = filt_lookup[filt]
-        
+        fobj = get_filter(filt)
         fwl, ftrans = fobj.transmission
         
         ftrans = np.maximum(ftrans, 0.)
@@ -124,14 +113,6 @@ class sky_source():
         if ttrans < self.small_num: ttrans = 1.
         ntrans = np.maximum(trans_interp / ttrans, 0.0)
         
-        if filter_num in mips_dict:
-            td = np.trapz(((wavelength/mips_dict[filter_num])**(-2.))*ntrans/wavelength, wavelength)
-            ntrans = ntrans/max(1e-70,td)
-
-        if filter_num in spitzer_dict:
-            td = np.trapz(((wavelength/spitzer_dict[filter_num])**(-1.0))*ntrans/wavelength, wavelength)
-            ntrans = ntrans/max(1e-70,td)
-
         self.transmission = ntrans
         return 
 
@@ -140,7 +121,7 @@ class sky_source():
         #convert FLI to moon sun separation
         return 180.-np.degrees(np.arccos(2*np.clip(fli,0.01,0.99)-1))
         
-    def set_params(self, fli=None, airmass=None, pwv=None, obs_mag=None, obs_band='v'):
+    def set_params(self, fli=None, airmass=None, pwv=None, obs_mag=None, obs_band='johnson_v'):
         #store values and update parameter dictionary
         if fli is not None:
             if fli != self.fli: #is this different than the current value:?

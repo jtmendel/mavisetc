@@ -61,7 +61,7 @@ class CCD290(detector):
 
 class COSMOS(detector):
     name = 'COSMOS'
-    rn = 0.7 #e-/pixel/dit
+    rn = 3.0 #e-/pixel/dit
     dark = 180/3600. #e-/pixel/s
     npix_det = 6800
     pixsize = 10e-3 #mm

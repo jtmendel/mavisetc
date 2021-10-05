@@ -23,7 +23,6 @@ As well as Numpy and Scipy, you will need to have the following Python modules i
 * [Cython](https://cython.org/)
 * [astropy](http://www.astropy.org/) - Python tools for astronomy.
 * [skycalc_cli](https://www.eso.org/observing/etc/doc/skycalc/helpskycalccli.html) - The command line interface to ESO's advance sky model.
-* [python-fsps](http://dfm.io/python-fsps/current/) - Python interface for FSPS.  Will also need to install FSPS!
 
 # Contents
 * Description coming soon, I promise!
