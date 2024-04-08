@@ -22,6 +22,8 @@ class telescope:
 class VLT(telescope):
     name = 'VLT'
     area = 48.32507025
+    primary_radius = 4.0
+    secondary_radius = 1.2
     def __init__(self):
         #initialize the model base
         telescope.__init__(self)

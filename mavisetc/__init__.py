@@ -5,10 +5,10 @@ except(ImportError):
 
 from . import instruments
 from . import sources
-from . import sky
+from . import background
 from . import utils
 from . import telescopes
 from . import detectors
 from . import filters
 
-__all__ = ['instruments', 'sources', 'sky', 'utils', 'telescopes', 'detectors', 'filters']
+__all__ = ['instruments', 'sources', 'background', 'utils', 'telescopes', 'detectors', 'filters']

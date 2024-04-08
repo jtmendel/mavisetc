@@ -76,13 +76,20 @@ class IFSInstrument:
                                             source.res_pix**2, 1e-30,None))
         conv_source = smooth(source_phot, offset_res_source)
        
-        #resample onto outputpixel grid
-        source_resampled = np.interp(self.inst_wavelength, source_wave, conv_source)
+        #resample being more carful to conserve flux here, esp. for undersampled features.
+        #assumes uniform distribution of flux across pixel.
+        accum_source = np.cumsum(np.r_[conv_source[:1], conv_source])*source.red_step #photons/s/m^2
+        source_bin_waves = np.r_[source_wave-source.red_step/2., source_wave[-1:]+source.red_step/2.]
+        out_bin_waves = np.r_[self.inst_wavelength-self.step/2., self.inst_wavelength[-1:]+self.step/2.]
+        interp_source = np.interp(out_bin_waves, source_bin_waves, accum_source)
+        source_resampled = np.diff(interp_source)/self.step
+        
+        #source_resampled = np.interp(self.inst_wavelength, source_wave, conv_source)
         
         return source_resampled
 
 
-    def calc_sn(self, source, sky=None, dit=3600., 
+    def calc_sn(self, source, sky=None, lgs=None, dit=3600., 
                 ndit=None, sn=None, seeing=1., binning=1, ref_wl=0.7, 
                 strehl=None):
         """ 
@@ -98,6 +105,12 @@ class IFSInstrument:
         else:
             sky_trans_resampled = np.ones(len(self.inst_wavelength))
             sky_emm_resampled = np.zeros(len(self.inst_wavelength))
+
+        #if an LGS object is supplied generate the appropriate spectrum to be included
+        if lgs is not None:
+            lgs_resampled = self.make_source_spectrum(lgs)
+        else:
+            lgs_resampled = np.zeros(len(self.inst_wavelength))
 
         #store transmission spectrum
         self.sky_trans = np.copy(sky_trans_resampled)
@@ -119,9 +132,13 @@ class IFSInstrument:
         #sky is always done correctly-ish.
         self.sky_obs = np.copy(sky_emm_resampled)*dit*self.total_throughput*\
                   self.step*self.telescope.area*self.pix_scale**2 * self.obs_area #total area
-            
+           
+        #lgs gets scaled in the same way as sky
+        self.lgs_obs = np.copy(lgs_resampled)*dit*self.total_throughput*\
+                  self.step*self.telescope.area*self.pix_scale**2 * self.obs_area
+
         #total noise calculation
-        self.noise = self.source_obs + self.sky_obs + self.obs_area*(self.detector.rn**2 + self.detector.dark*dit) #per dit
+        self.noise = self.source_obs + self.sky_obs + self.lgs_obs + self.obs_area*(self.detector.rn**2 + self.detector.dark*dit) #per dit
         
         if sn is not None and ndit is None: #provided S/N, work out ndit to reach S/N 5
             ndit = np.sqrt(self.noise)*sn/self.source_obs
@@ -136,7 +153,7 @@ class IFSInstrument:
         return self.inst_wavelength, sn
 
 
-    def get_mag_limit(self, sn=5, sky=None, dit=3600., ndit=1, 
+    def get_mag_limit(self, sn=5, sky=None, lgs=None, dit=3600., ndit=1, 
                         seeing=1., binning=1, ref_wl=0.7, 
                         strehl=None, norm='point'):
         """
@@ -149,6 +166,12 @@ class IFSInstrument:
         else:
             sky_trans_resampled = np.ones(len(self.inst_wavelength))
             sky_emm_resampled = np.zeros(len(self.inst_wavelength))
+
+        #if an LGS object is supplied generate the appropriate spectrum to be included
+        if lgs is not None:
+            lgs_resampled = self.make_source_spectrum(lgs)
+        else:
+            lgs_resampled = np.zeros(len(self.inst_wavelength))
 
         #store transmission spectrum
         self.sky_trans = np.copy(sky_trans_resampled)
@@ -168,16 +191,20 @@ class IFSInstrument:
         self.sky_obs = np.copy(sky_emm_resampled)*dit*self.total_throughput*\
                   self.step*self.telescope.area*self.pix_scale**2 * self.obs_area #total area
             
+        #lgs gets treated the same as the sky (sB)
+        self.lgs_obs = np.copy(lgs_resampled)*dit*self.total_throughput*\
+                  self.step*self.telescope.area*self.pix_scale**2 * self.obs_area #total area
+        
         #quadratic terms for solution
         a = ndit / sn**2
-        c = self.sky_obs + self.obs_area*(self.detector.rn**2 + self.detector.dark*dit)
+        c = self.sky_obs + self.lgs_obs + self.obs_area*(self.detector.rn**2 + self.detector.dark*dit)
 
         source_obs = 0.5*(1. + np.sqrt(1. + 4*a*c)) * sn**2 / ndit
 
         return -2.5*np.log10(source_obs * self.inst_wavelength * 6.626196e-27 / 100**2 / self.cfact)-48.6
 
 
-    def observe(self, source, sky=None, dit=3600., 
+    def observe(self, source, sky=None, lgs=None, dit=3600., 
                 ndit=1, seeing=1., binning=1, ref_wl=0.7, 
                 strehl=None, combine='mean'):
         """
@@ -193,6 +220,13 @@ class IFSInstrument:
         else:
             sky_trans_resampled = np.ones(len(self.inst_wavelength))
             sky_emm_resampled = np.zeros(len(self.inst_wavelength))
+
+        #if an LGS object is supplied generate the appropriate spectrum to be included
+        if lgs is not None:
+            lgs_resampled = self.make_source_spectrum(lgs)
+        else:
+            lgs_resampled = np.zeros(len(self.inst_wavelength))
+
 
         #store transmission spectrum
         self.sky_trans = np.copy(sky_trans_resampled)
@@ -215,10 +249,14 @@ class IFSInstrument:
         self.sky_obs = np.copy(sky_emm_resampled)*dit*self.total_throughput*\
                   self.step*self.telescope.area*self.pix_scale**2 * self.obs_area #total area
 
-        self.noise = self.source_obs + self.sky_obs + self.obs_area*(self.detector.rn**2 + self.detector.dark*dit) #per dit
+        #sky is always done correctly-ish.
+        self.lgs_obs = np.copy(lgs_resampled)*dit*self.total_throughput*\
+                  self.step*self.telescope.area*self.pix_scale**2 * self.obs_area #total area
+        
+        self.noise = self.source_obs + self.sky_obs + self.lgs_obs + self.obs_area*(self.detector.rn**2 + self.detector.dark*dit) #per dit
 
         # generate noisy realisations of the data
-        rng = np.random.default_rng(1234)
+        rng = np.random.default_rng()
         spec_all = self.source_obs[np.newaxis, :] + rng.normal(loc=0, scale=np.tile(np.sqrt(self.noise), (ndit,1))) 
        
         spec_out = np.mean(spec_all, axis=0)
@@ -240,7 +278,7 @@ class MAVIS_IFS(IFSInstrument):
     """
 
     def __init__(self, mode=None, pix_scale=0.020, jitter=5, live_fraction=0.95, 
-                 detector=None, telescope=None):
+                 detector=None, telescope=None, inst_wavelength=None):
         #check for reasonable jitter values
         if jitter not in [5,10,20,30,40]:
             raise ValueError('Input jitter must be one of 5, 10, 20, 30, or 40 (mas)')
@@ -248,7 +286,7 @@ class MAVIS_IFS(IFSInstrument):
         if mode not in ['LR-blue','LR-red','HR-blue','HR-red']:
             raise ValueError('Invalid grating setup.  Must be one of LR-blue, LR-red, HR-blue, or HR-red.')
 
-        if pix_scale not in [0.020,0.050]:
+        if pix_scale not in [0.025,0.050]:
             warnings.warn('You indicated a pixel scale that is a bit non-standard. Just letting you know!')
 
         #initialize the model base
@@ -261,7 +299,7 @@ class MAVIS_IFS(IFSInstrument):
         if detector is None:
             self.detector = CCD290()
         else:
-            self.detector = detector()
+            self.detector = detector
 
         #detector parameters 
         self.live_pix_det = self.detector.npix_det * live_fraction
@@ -283,12 +321,17 @@ class MAVIS_IFS(IFSInstrument):
         self.step = self.dlam / 2.3
 
         npix_wave = min(self.live_pix_det, np.int(np.floor(grating_wmin/self.step/1e4))) #avoid coverage over an octave
-        self.inst_wavelength = np.arange(npix_wave)*self.step + grating_wmin / 1e4
-        self.wmin_eff, self.wmax_eff = self.inst_wavelength[0], self.inst_wavelength[-1]
 
-        self.res_power_interp = self.inst_wavelength / 2.3 / self.step
-
-        self.res_pix = self.inst_wavelength / self.res_power_interp / self.step / 2.355
+        if inst_wavelength is not None:
+            self.inst_wavelength = inst_wavelength
+            self.wmin_eff, self.wmax_eff = self.inst_wavelength.min(), self.inst_wavelength.max()
+            self.res_power_interp = np.ones_like(self.inst_wavelength)*3500.
+            self.res_pix = self.inst_wavelength / self.res_power_interp / self.step / 2.355
+        else:   
+            self.inst_wavelength = np.arange(npix_wave)*self.step + grating_wmin / 1e4
+            self.wmin_eff, self.wmax_eff = self.inst_wavelength[0], self.inst_wavelength[-1]
+            self.res_power_interp = self.inst_wavelength / 2.3 / self.step
+            self.res_pix = self.inst_wavelength / self.res_power_interp / self.step / 2.355
 
         #get path for bundled package files
         bfile_dir = os.path.join(os.path.dirname(sys.modules['mavisetc'].__file__), 'data')
@@ -304,7 +347,7 @@ class MAVIS_IFS(IFSInstrument):
                 'HR-red': 'HRR Spec Only',
                 }
         
-        data = np.array(asc.read(os.path.join(bfile_dir, 'mavis/MAVIS_throughput_SpecOnly.csv')))
+        data = np.array(asc.read(os.path.join(bfile_dir, 'mavis/MAVIS_throughput_spec_2022-02-02.csv')))
         twave = np.array(data['Wavelength'])/1e3
         ttpt = np.array(data[tpt_dict[mode]])
         self.instrument_throughput = interp1d(twave[ttpt > 0], ttpt[ttpt > 0], fill_value='extrapolate')(self.inst_wavelength)
@@ -326,17 +369,30 @@ class MAVIS_IFS(IFSInstrument):
 
         #patch in low throughput at the notch
         self.notch = (self.inst_wavelength > 0.580) & (self.inst_wavelength < 0.597)
-        self.total_throughput[self.notch] = 1e-5
+        #self.total_throughput[self.notch] = 1e-5
 
         #AOM throughput estimate
         data = np.array(asc.read(os.path.join(bfile_dir, 'mavis/mavis_AOM_throughput.csv')))
         twave = np.array(data['col1'])
         ttpt = np.array(data['col2'])
 
-        self.ao_throughput = np.interp(self.inst_wavelength, np.array(twave), np.array(ttpt),
-                                left=ttpt[0], right=ttpt[-1])
+        self.ao_throughput = interp1d(np.array(twave), np.array(ttpt), bounds_error=False,
+                                    fill_value='extrapolate')(self.inst_wavelength).clip(0,1)
+
+
+        #include notch throughput as part of the AO system
+        data = np.array(asc.read(os.path.join(bfile_dir, 'mavis/notch_throughput.csv')))
+        twave = np.array(data['col1'])/1000.
+        ttpt = np.array(data['col2'])/100.
+
+        self.notch_throughput = interp1d(np.array(twave), np.array(ttpt), bounds_error=False,
+                                    fill_value='extrapolate')(self.inst_wavelength).clip(0,1)
+
+        self.ao_throughput *= self.notch_throughput
+
+        #fold in AOM+notch to the throughput budget
         self.total_throughput *= self.ao_throughput
-        
+
         
         #pre-load computed EE profiles
         ee_files = glob.glob(os.path.join(bfile_dir, 'mavis/PSF_{0}mas*EEProfile.dat'.format(jitter)))

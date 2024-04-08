@@ -13,7 +13,7 @@ from ..utils.smoothing import smooth
 from ..filters import get_filter
 
 #import some bits for the instruments
-from ..detectors import CCD250
+from ..detectors import CCD290
 from ..telescopes import VLT
 
 __all__ = ["MAVIS_Imager"]
@@ -95,7 +95,7 @@ class ImagingInstrument:
         return sky_emm_resampled, sky_trans_resampled
 
 
-    def calc_sn(self, source, sky=None, dit=3600., 
+    def calc_sn(self, source, sky=None, lgs=None, dit=3600., 
                 ndit=None, sn=None, seeing=1., binning=1, band='johnson_v', strehl=None):
     
         #generate source spectrum
@@ -110,6 +110,13 @@ class ImagingInstrument:
         else:
             sky_trans_resampled = np.ones(len(self.inst_wavelength))
             sky_emm_resampled = np.zeros(len(self.inst_wavelength))
+
+        #if an LGS object is supplied generate the appropriate spectrum to be included
+        if lgs is not None:
+            _, lgs_resampled = lgs(wavelength=self.inst_wavelength, 
+                                   resolution=np.ones_like(self.inst_wavelength)*np.diff(self.inst_wavelength)[0]) 
+        else:
+            lgs_resampled = np.zeros(len(self.inst_wavelength))
 
         #store transmission spectrum
         self.sky_trans = np.copy(sky_trans_resampled)
@@ -132,6 +139,9 @@ class ImagingInstrument:
         sky_obs = np.copy(sky_emm_resampled)*dit*self.total_throughput*self.step*\
                   self.telescope.area*self.pix_scale**2 * self.obs_area #total area, photons#/um
 
+        #lgs is handled same way as sky
+        lgs_obs = np.copy(lgs_resmapled)*dit*self.total_throughput*self.step*\
+                  self.telescope.area*self.pix_scale**2 * self.obs_area #total area, photons#/um
 
         ##set filter
         for iband in band:
@@ -140,13 +150,16 @@ class ImagingInstrument:
             #integrate transmission for total counts
             self.source_obs = self._patch_nan(source_obs)*self.trans_norm
             self.sky_obs = self._patch_nan(sky_obs)*self.trans_norm
-        
+            self.lgs_obs = self._patch_nan(lgs_obs)*self.trans_norm
+
+
             #total noise calculation
             self.dark_noise = self.obs_area*self.detector.dark*dit
             self.read_noise = self.obs_area*self.detector.rn**2
             self.sky_noise = np.nansum(self.sky_obs)
             self.obj_noise = np.nansum(self.source_obs)
-            self.noise = self.obj_noise + self.sky_noise + self.read_noise + self.dark_noise #per dit
+            self.lgs_noise = np.nansum(self.lgs_obs)
+            self.noise = self.obj_noise + self.sky_noise + self.lgs_noise + self.read_noise + self.dark_noise #per dit
         
             if sn is not None and ndit is None: #provided S/N, work out ndit to reach target S/N
                 indit = np.int(np.ceil(np.sqrt(self.noise)*sn/self.source_obs.sum()))
@@ -158,10 +171,9 @@ class ImagingInstrument:
         return 
 
 
-    def get_mag_limit(self, sn=None, sky=None, dit=3600., 
+    def get_mag_limit(self, sn=None, sky=None, lgs=None, dit=3600., 
                       ndit=None, seeing=1., binning=1, band='johnson_v', strehl=None,
                       norm='point'):
-    
 
         #if a sky object is also supplied, convolve it to match the instrument properties
         if sky is not None:
@@ -174,6 +186,13 @@ class ImagingInstrument:
         else:
             sky_trans_resampled = np.ones(len(self.inst_wavelength))
             sky_emm_resampled = np.zeros(len(self.inst_wavelength))
+
+        #if an LGS object is supplied generate the appropriate spectrum to be included
+        if lgs is not None:
+            _, lgs_resampled = lgs(wavelength=self.inst_wavelength, 
+                                   resolution=np.ones_like(self.inst_wavelength)*np.diff(self.inst_wavelength)[0]) 
+        else:
+            lgs_resampled = np.zeros(len(self.inst_wavelength))
 
         #store transmission spectrum
         self.sky_trans = np.copy(sky_trans_resampled)
@@ -194,6 +213,10 @@ class ImagingInstrument:
         sky_obs = np.copy(sky_emm_resampled)*dit*self.total_throughput*self.step*\
                   self.telescope.area*self.pix_scale**2 * self.obs_area #total area, photons#/um
 
+        #sky is always done correctly-ish.
+        lgs_obs = np.copy(lgs_resampled)*dit*self.total_throughput*self.step*\
+                  self.telescope.area*self.pix_scale**2 * self.obs_area #total area, photons#/um
+
         ##set filter
         store_limit = []
         store_pivot = []
@@ -202,12 +225,14 @@ class ImagingInstrument:
          
             #integrate transmission for total counts
             self.sky_obs = self._patch_nan(sky_obs)*self.trans_norm
-        
+            self.lgs_obs = self._patch_nan(lgs_obs)*self.trans_norm
+
             #total noise calculation
             self.dark_noise = self.obs_area*self.detector.dark*dit
             self.read_noise = self.obs_area*self.detector.rn**2
             self.sky_noise = np.nansum(self.sky_obs)
-            self.noise = self.sky_noise + self.read_noise + self.dark_noise #per dit
+            self.lgs_noise = np.nansum(self.lgs_obs)
+            self.noise = self.sky_noise + self.lgs_noise + self.read_noise + self.dark_noise #per dit
        
             #quadratic terms for solution
             a = ndit / sn**2
@@ -232,7 +257,7 @@ class MAVIS_Imager(ImagingInstrument):
     and more elaborate PSF model.
     """
 
-    def __init__(self, pix_scale=0.00736, jitter=5, detector=None, telescope=None):
+    def __init__(self, pix_scale=0.00736, jitter=5, detector=None, telescope=None, notch_exp=1):
         #check for reasonable jitter values
         if jitter not in [5,10,20,30,40]:
             raise ValueError('Input jitter must be one of 5, 10, 20, 30, or 40 (mas)')
@@ -245,12 +270,12 @@ class MAVIS_Imager(ImagingInstrument):
        
         #wavelength business
         self.step = 1. / 1e4 #microns
-        self.wmin, self.wmax = 3700./1e4, 10100./1e4
+        self.wmin, self.wmax = 3000./1e4, 10100./1e4
         self.inst_wavelength = np.arange(self.wmin, self.wmax, self.step)
 
         #initialize the provided detector object
         if detector is None:
-            self.detector = CCD250()
+            self.detector = CCD290()
         else:
             self.detector = detector()
 
@@ -267,10 +292,7 @@ class MAVIS_Imager(ImagingInstrument):
         self.telescope_throughput = np.interp(self.inst_wavelength, self.telescope.telescope_wave, self.telescope.telescope_eff)
 
         #compute the combined throughput - including filter transmission
-        self.total_throughput = self.telescope_throughput * self.qe * 0.98**2
-
-        #patch in low throughput at the notch
-        self.notch = (self.inst_wavelength > 0.580) & (self.inst_wavelength < 0.597)
+        self.total_throughput = self.telescope_throughput * self.qe * 0.98**2 * 0.8
 
         #get path for bundled package files
         bfile_dir = os.path.join(os.path.dirname(sys.modules['mavisetc'].__file__), 'data')
@@ -280,8 +302,23 @@ class MAVIS_Imager(ImagingInstrument):
         twave = np.array(data['col1'])
         ttpt = np.array(data['col2'])
 
-        self.ao_throughput = np.interp(self.inst_wavelength, np.array(twave), np.array(ttpt),
-                                left=ttpt[0], right=ttpt[-1])
+        twave = np.r_[np.array([0.320]), twave]
+        ttpt = np.r_[np.array([0.04]), ttpt]
+
+        self.ao_throughput = interp1d(np.array(twave), np.array(ttpt), bounds_error=False, 
+                                    fill_value='extrapolate')(self.inst_wavelength).clip(0,1)
+
+        #include notch throughput as part of the AO system
+        data = np.array(asc.read(os.path.join(bfile_dir, 'mavis/notch_throughput.csv')))
+        twave = np.array(data['col1'])/1000.
+        ttpt = np.array(data['col2'])/100.
+
+        self.notch_throughput = interp1d(np.array(twave), np.array(ttpt), bounds_error=False,
+                                    fill_value='extrapolate')(self.inst_wavelength).clip(0,1)**notch_exp
+
+        self.ao_throughput *= self.notch_throughput
+
+        #fold in AOM+notch to the throughput budget
         self.total_throughput *= self.ao_throughput
 
         #pre-load EE profiles

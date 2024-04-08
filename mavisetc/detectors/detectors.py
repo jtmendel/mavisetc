@@ -51,11 +51,14 @@ class CCD290(detector):
     pixsize = 10e-3 #mm
     full_well = 90000.
 
-    def __init__(self):
+    def __init__(self, qe='average'):
         #initialize the model base
         detector.__init__(self)
-        
-        self.qefile = 'E2V290_QE.csv'
+       
+        if qe == 'average':
+            self.qefile = 'E2V290_QE.csv'
+        elif qe == 'min':
+            self.qefile = 'E2V290_QE_min.csv'
         self.qe_interp = self._read_qe()
         
 

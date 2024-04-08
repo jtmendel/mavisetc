@@ -9,7 +9,7 @@ from ..filters import get_filter
 
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
-__all__ = ['template_source', 'stellar_source']
+__all__ = ['template_source', 'stellar_source', 'lamp_source']
 
 class template_source():
     """
@@ -164,4 +164,116 @@ class stellar_source():
     """
     def __init__(self):
         pass
+
+class lamp_source():
+    """
+    Class for defining source objects.  This just pulls in fits files
+    from the Kinney and Calzetti template library.
+    """
+    
+    def __init__(self):
+        
+        #some conversion parameters
+        self.small_num = 1e-70
+        self.lsun = 3.839e33 #erg/s
+        self.pc2cm = 3.08568e18 #pc to cm
+        self.clight  = 2.997924580e18 #A/s
+        self.h = 6.626196e-27 #Plancks constant in erg s
+
+        #for correction to absolute mags
+        self.mag2cgs = np.log10(1/4.0/np.pi/(self.pc2cm*self.pc2cm)/100.)
+        
+        #initialize template dictionary
+        self.bfile_dir = os.path.join(os.path.dirname(sys.modules['mavisetc'].__file__), 'data/lamp_templates')
+       
+        self.template_dict = {'HgAr':'Newport_HgAr_1dspec.csv',
+                             'Kr': 'Newport_Kr_1dspec.csv',
+                             'Ne': 'Newport_Ne_1dspec.csv',
+                             'Ar': 'Newport_Ar_1dspec.csv',
+                             'GS_ThAr': 'GS_ThAr_1dspec.csv',
+                             'Photron_ThAr': 'Photron_ThAr_1dspec.csv',
+                             'Etalon_hrblue': 'Etalon_EQ99_HRBlue.csv',
+                             'Etalon_lrblue': 'Etalon_EQ99_LRBlue.csv',
+                             'Etalon_hrred': 'Etalon_EQ99_HRRed.csv',
+                             'Etalon_lrred': 'Etalon_EQ99_LRRed.csv',
+                             'comp_Ne': 'composite_Ne_1dspec.csv',
+                             'HgCd': 'MUSE_HgCd_1dspec.csv',
+                             'Xe': 'MUSE_Xe_1dspec.csv',
+                             }
+
+        #template parameters that will be populated later
+        self.res = None
+        self.res_pix = None
+        self.wavelength = None
+        self.red_wavelength = None
+        self.red_step = None
+
+        #filter parameters that will be populated later
+        self.transmission = None
+
+
+    def templates(self):
+        return self.template_dict.keys()
+        
+    def _set_template(self, template):
+        if template not in self.template_dict:
+            raise("Template must be one of {0}".format(','.join(list(self.templates()))))
+
+        if template in ['Etalon_hrblue', 'Etalon_lrblue', 'Etalon_hrred', 'Etalon_lrred']:
+            self.res = 100000
+        else:
+            self.res = 5000
+
+        temp_flux = []
+        temp_wave = []
+        with open(os.path.join(self.bfile_dir, self.template_dict[template]),'r') as ffile:
+            for line in ffile:
+                temp = line.strip().split(',')
+                temp_wave.append(float(temp[0])/1e3) #should be in microns
+                temp_flux.append(float(temp[1])*1e9) #should be erg/s/cm^2
+        temp_flux = np.asarray(temp_flux)
+        temp_wave = np.asarray(temp_wave)
+
+        #print(temp_wave)
+        #print(temp_flux)
+
+        #ensure sampling onto a regular grid
+        wave_low, wave_high = temp_wave.min(), temp_wave.max()
+        npix = len(temp_wave)
+        
+        self.wavelength = np.linspace(wave_low, wave_high, npix)
+        self.step = np.diff(self.wavelength)[0]
+        self.res_pix = self.wavelength / self.res / self.step / 2.355
+        
+        #interpolate flux onto regular grid
+        interp_flux = np.interp(self.wavelength, temp_wave, temp_flux)/self.step #erg/s/cm^2/micron
+
+        self.template_flux = interp_flux * temp_wave**2 *1e4 / self.clight #in erg/s/cm^2/Hz
+        return 
+        
+
+    def set_params(self, template=None, norm='point', **kwargs):
+        """
+        Needs information
+        """
+        
+        #load template here
+        self._set_template(template)
+        self.red_step = self.step
+        
+        #set normalization type
+        self.norm_sb = False
+        if norm == 'extended':
+            self.norm_sb =  True
+
+        return
+ 
+              
+    def __call__(self, **kwargs):
+               
+        photons = self.template_flux *100**2 / self.h / self.wavelength #photons/s/m^2/um.  If self.norm_sb then arcsec^-2
+        
+        return self.wavelength, photons
+
+
 
