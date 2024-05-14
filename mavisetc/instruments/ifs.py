@@ -277,8 +277,8 @@ class MAVIS_IFS(IFSInstrument):
     and more elaborate PSF model.
     """
 
-    def __init__(self, mode=None, pix_scale=0.020, jitter=5, live_fraction=0.95, 
-                 detector=None, telescope=None, inst_wavelength=None):
+    def __init__(self, mode=None, pix_scale=0.025, jitter=5, live_fraction=0.95, 
+                 detector=None, telescope=None, inst_wavelength=None, throughput_model='new'):
         #check for reasonable jitter values
         if jitter not in [5,10,20,30,40]:
             raise ValueError('Input jitter must be one of 5, 10, 20, 30, or 40 (mas)')
@@ -287,7 +287,7 @@ class MAVIS_IFS(IFSInstrument):
             raise ValueError('Invalid grating setup.  Must be one of LR-blue, LR-red, HR-blue, or HR-red.')
 
         if pix_scale not in [0.025,0.050]:
-            warnings.warn('You indicated a pixel scale that is a bit non-standard. Just letting you know!')
+            raise ValueError('Invalid pixel scale. Must be one 0.025 or 0.05 arcsec')
 
         #initialize the model base
         IFSInstrument.__init__(self)
@@ -339,18 +339,43 @@ class MAVIS_IFS(IFSInstrument):
         #get detector QE
         self.qe = self.detector.qe_interp(self.inst_wavelength)
 
-        #mode-dependant throughout from optical model        
-        tpt_dict = {
+        #mode-dependant throughout from optical model
+        if throughput_model == 'legacy':
+            tpt_dict = {
                 'LR-blue': 'LRB Spec Only',
                 'LR-red': 'LRR Spec Only',
                 'HR-blue': 'HRB Spec Only',
                 'HR-red': 'HRR Spec Only',
                 }
+            #data = np.array(asc.read(os.path.join(bfile_dir, 'mavis/MAVIS_throughput_spec_2022-02-02.csv')))
+            data = asc.read(os.path.join(bfile_dir, 'mavis/MAVIS_throughput_spec_2022-02-02.csv'), encoding='utf-8-sig')
+            twave = np.array(data['Wavelength'])/1e3
+            ttpt = np.array(data[tpt_dict[mode]])
+            self.instrument_throughput = interp1d(twave[ttpt > 0], ttpt[ttpt > 0], fill_value='extrapolate')(self.inst_wavelength)
         
-        data = np.array(asc.read(os.path.join(bfile_dir, 'mavis/MAVIS_throughput_spec_2022-02-02.csv')))
-        twave = np.array(data['Wavelength'])/1e3
-        ttpt = np.array(data[tpt_dict[mode]])
-        self.instrument_throughput = interp1d(twave[ttpt > 0], ttpt[ttpt > 0], fill_value='extrapolate')(self.inst_wavelength)
+        #mode-dependant and scalethroughout from optical model        
+        elif throughput_model == 'new':
+            if pix_scale == 0.025:
+                tpt_dict = {
+                    'LR-blue': '25LRB',
+                    'LR-red': '25LRR',
+                    'HR-blue': '25HRB',
+                    'HR-red': '25HRR',
+                    }
+            if pix_scale == 0.050:
+                tpt_dict = {
+                    'LR-blue': '50LRB',
+                    'LR-red': '50LRR',
+                    'HR-blue': '50HRB',
+                    'HR-red': '50HRR',
+                    }
+ 
+            data = asc.read(os.path.join(bfile_dir, 'mavis/MAVIS_throughput_spec_2024-05-14.csv'), encoding='utf-8-sig')
+            twave = np.array(data['Wavelength'])/1e3
+            ttpt = np.array(data[tpt_dict[mode]])
+            self.instrument_throughput = interp1d(twave[ttpt > 0], ttpt[ttpt > 0], fill_value='extrapolate')(self.inst_wavelength)
+
+
 
         #initialize the telescope
         if telescope is None:
