@@ -260,7 +260,6 @@ class stellar_source():
         rec_met = self.grid_zh[zindex, gindex, tindex]
         rec_logg = self.grid_logg[zindex, gindex, tindex]
         rec_teff = self.grid_teff[zindex, gindex, tindex]
-        print("Parameter checks:", metallicity, rec_met, logg, rec_logg, teff, rec_teff)
 
         self.template_flux = self.templates[:,zindex, gindex, tindex] #in erg/s/cm^2/Hz, normalized to SDSS r_band
         return 

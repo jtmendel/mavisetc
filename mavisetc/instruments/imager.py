@@ -140,7 +140,7 @@ class ImagingInstrument:
                   self.telescope.area*self.pix_scale**2 * self.obs_area #total area, photons#/um
 
         #lgs is handled same way as sky
-        lgs_obs = np.copy(lgs_resmapled)*dit*self.total_throughput*self.step*\
+        lgs_obs = np.copy(lgs_resampled)*dit*self.total_throughput*self.step*\
                   self.telescope.area*self.pix_scale**2 * self.obs_area #total area, photons#/um
 
         ##set filter
