@@ -156,7 +156,7 @@ if __name__ == "__main__":
                               "mavisetc/data/mavis/PSF_40mas_700nm_EEProfile.dat",
                               "mavisetc/data/mavis/PSF_40mas_950nm_EEProfile.dat",
                               "mavisetc/data/mavis/MAVIS_throughput_spec_2022-02-02.csv",
-                              "mavisetc/data/mavis/MAVIS_throughput_spec_2024-05-14.csv",
+                              "mavisetc/data/mavis/MAVIS_throughput_spec_2024-5-14.csv",
                               "mavisetc/data/mavis/mavis_AOM_throughput.csv",
                               "mavisetc/data/mavis/notch_throughput.csv",
                               "mavisetc/data/ref_sky_dark.fits",
