@@ -4,4 +4,4 @@ from .flat_models import *
 from .lasd_models import *
 from .etalon_models import *
 
-__all__ = ["line_source", "template_source", "flat_source", "lasd_source", "lamp_source", "etalon_source"]
+__all__ = ["line_source", "template_source", "flat_source", "lasd_source", "lamp_source", "etalon_source", "stellar_source"]

@@ -305,6 +305,7 @@ if __name__ == "__main__":
 							  "mavisetc/data/lamp_templates/composite_Ne_1dspec.csv",
 							  "mavisetc/data/lamp_templates/MUSE_HgCd_1dspec.csv",
 							  "mavisetc/data/lamp_templates/MUSE_Xe_1dspec.csv",
+                              "mavisetc/data/stellar_templates/MAVIS_stellar_library.fits",
                               "mavisetc/data/filters/cousins_i.dat",
                               "mavisetc/data/filters/cousins_r.dat",
                               "mavisetc/data/filters/johnson_b.dat",
