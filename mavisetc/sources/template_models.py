@@ -298,7 +298,6 @@ class stellar_source():
 
         return -2.5*np.log10(num/denom) - 48.6
 
-
     def __call__(self, **kwargs):
                
         #measure in-band magnitude on the current template
