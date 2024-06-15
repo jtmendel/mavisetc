@@ -321,40 +321,36 @@ class MAVIS_Imager(ImagingInstrument):
         #fold in AOM+notch to the throughput budget
         self.total_throughput *= self.ao_throughput
 
-        #pre-load EE profiles
-        ee_files = glob.glob(os.path.join(bfile_dir, 'mavis/PSF_{0}mas*EEProfile.dat'.format(jitter)))
-        wave = []
-        ee_interp = []
-        for ii, ee_file in enumerate(ee_files):
-            twave = os.path.split(ee_file)[1].split('_')[2][:-2]
-            wave.append(float(twave)/1e3)
-            with open(ee_file, 'r') as file:
-                tr, tee = [], []
-                for line in file:
-                    temp = line.strip().split(',')
-                    tr.append(float(temp[0])/self.pix_scale) #in pixels
-                    tee.append(float(temp[1]))
-                ee_interp.append(interp1d(tr, tee, bounds_error=False, fill_value='extrapolate'))
-        self._ee_profile_wave = np.array(wave)
-        self._ee_profile_interp = ee_interp
-        
+
+        #loading in new PSF library
+        turbulence_dict = {'10%': 'PSF_PC10_2024-06-12.fits',
+                           '25%': 'PSF_PC25_2024-06-12.fits',
+                           '50%': 'PSF_PC50_2024-06-12.fits',
+                           '75%': 'PSF_PC75_2024-06-12.fits',
+                           '90%': 'PSF_PC90_2024-06-12.fits'
+                           }
+        ee_model = os.path.join(bfile_dir, 'mavis/{0}'.format(turbulence_dict[turbulence_cat]))
+        self._ee_profile_wave = fits.getdata(ee_model, ext=0)/1e3
+        psf_rad = fits.getdata(ee_model, ext=1)/self.pix_scale
+        psf_ee = fits.getdata(ee_model, ext=2)
+
+        #store the interpolator object
+        self._ee_profile_interp = interp1d(psf_rad, psf_ee, axis=0)
+
+        #assign EE generator
         self._ee = self._EE_lookup
-       
+
 
     def _EE_lookup(self, seeing, binning=1, **kwargs):
         """
-        A quick and dirty lookup/interpolation function to generate ensquared 
-        energy profiles based on simulations of the MAVIS PSF.
+        A quick and dirty interpolation function to generate ensquared 
+        energy within a given aperture using the pre-computed MAVIS PSF model..
         """
-        #Seeing isn't relevant for MAVIS at the moment, so it only depends on the binning
-        iwave = np.argsort(self._ee_profile_wave)
+
+        #given input binning/radius, generate EE array at each modelled wavelength
+        ee_out = self._ee_profile_interp(binning/2)
         
-        wave_out = np.zeros(len(iwave), dtype=np.float)
-        ee_out = np.zeros(len(iwave), dtype=np.float)
-        for ii, idx in enumerate(iwave): #sorted arguments?
-            wave_out[ii] = self._ee_profile_wave[idx]
-            ee_out[ii] = self._ee_profile_interp[idx](binning/2.)
-   
-        ee_interped = interp1d(wave_out, ee_out, fill_value='extrapolate')(self.inst_wavelength)
+        #now linearly interpolate to every wavelength
+        ee_interped = interp1d(self._ee_profile_wave, ee_out, fill_value='extrapolate')(self.inst_wavelength)
+
         return ee_interped, binning**2
- 

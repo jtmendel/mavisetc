@@ -278,7 +278,8 @@ class MAVIS_IFS(IFSInstrument):
     """
 
     def __init__(self, mode=None, pix_scale=0.025, jitter=5, live_fraction=0.95, 
-                 detector=None, telescope=None, inst_wavelength=None, throughput_model='new'):
+                 detector=None, telescope=None, inst_wavelength=None, turbulence_cat="50%"):
+        
         #check for reasonable jitter values
         if jitter not in [5,10,20,30,40]:
             raise ValueError('Input jitter must be one of 5, 10, 20, 30, or 40 (mas)')
@@ -339,41 +340,26 @@ class MAVIS_IFS(IFSInstrument):
         #get detector QE
         self.qe = self.detector.qe_interp(self.inst_wavelength)
 
-        #mode-dependant throughout from optical model
-        if throughput_model == 'legacy':
+        #mode- and scale-dependant throughput from optical model        
+        if pix_scale == 0.025:
             tpt_dict = {
-                'LR-blue': 'LRB Spec Only',
-                'LR-red': 'LRR Spec Only',
-                'HR-blue': 'HRB Spec Only',
-                'HR-red': 'HRR Spec Only',
+                'LR-blue': '25LRB',
+                'LR-red': '25LRR',
+                'HR-blue': '25HRB',
+                'HR-red': '25HRR',
                 }
-            #data = np.array(asc.read(os.path.join(bfile_dir, 'mavis/MAVIS_throughput_spec_2022-02-02.csv')))
-            data = asc.read(os.path.join(bfile_dir, 'mavis/MAVIS_throughput_spec_2022-02-02.csv'), encoding='utf-8-sig')
-            twave = np.array(data['Wavelength'])/1e3
-            ttpt = np.array(data[tpt_dict[mode]])
-            self.instrument_throughput = interp1d(twave[ttpt > 0], ttpt[ttpt > 0], fill_value='extrapolate')(self.inst_wavelength)
-        
-        #mode-dependant and scalethroughout from optical model        
-        elif throughput_model == 'new':
-            if pix_scale == 0.025:
-                tpt_dict = {
-                    'LR-blue': '25LRB',
-                    'LR-red': '25LRR',
-                    'HR-blue': '25HRB',
-                    'HR-red': '25HRR',
-                    }
-            if pix_scale == 0.050:
-                tpt_dict = {
-                    'LR-blue': '50LRB',
-                    'LR-red': '50LRR',
-                    'HR-blue': '50HRB',
-                    'HR-red': '50HRR',
-                    }
+        if pix_scale == 0.050:
+            tpt_dict = {
+                'LR-blue': '50LRB',
+                'LR-red': '50LRR',
+                'HR-blue': '50HRB',
+                'HR-red': '50HRR',
+                }
  
-            data = asc.read(os.path.join(bfile_dir, 'mavis/MAVIS_throughput_spec_2024-05-14.csv'), encoding='utf-8-sig')
-            twave = np.array(data['Wavelength'])/1e3
-            ttpt = np.array(data[tpt_dict[mode]])
-            self.instrument_throughput = interp1d(twave[ttpt > 0], ttpt[ttpt > 0], fill_value='extrapolate')(self.inst_wavelength)
+        data = asc.read(os.path.join(bfile_dir, 'mavis/MAVIS_throughput_spec_2024-05-14.csv'), encoding='utf-8-sig')
+        twave = np.array(data['Wavelength'])/1e3
+        ttpt = np.array(data[tpt_dict[mode]])
+        self.instrument_throughput = interp1d(twave[ttpt > 0], ttpt[ttpt > 0], fill_value='extrapolate')(self.inst_wavelength)
 
 
 
@@ -394,7 +380,6 @@ class MAVIS_IFS(IFSInstrument):
 
         #patch in low throughput at the notch
         self.notch = (self.inst_wavelength > 0.580) & (self.inst_wavelength < 0.597)
-        #self.total_throughput[self.notch] = 1e-5
 
         #AOM throughput estimate
         data = np.array(asc.read(os.path.join(bfile_dir, 'mavis/mavis_AOM_throughput.csv')))
@@ -418,42 +403,37 @@ class MAVIS_IFS(IFSInstrument):
         #fold in AOM+notch to the throughput budget
         self.total_throughput *= self.ao_throughput
 
-        
-        #pre-load computed EE profiles
-        ee_files = glob.glob(os.path.join(bfile_dir, 'mavis/PSF_{0}mas*EEProfile.dat'.format(jitter)))
-        wave = []
-        ee_interp = []
-        for ii, ee_file in enumerate(ee_files):
-            twave = os.path.split(ee_file)[1].split('_')[2][:-2]
-            wave.append(float(twave)/1e3)
-            with open(ee_file, 'r') as file:
-                tr, tee = [], []
-                for line in file:
-                    temp = line.strip().split(',')
-                    tr.append(float(temp[0])/self.pix_scale) #in pixels
-                    tee.append(float(temp[1]))
-                ee_interp.append(interp1d(tr, tee, bounds_error=False, fill_value='extrapolate'))
-        self._ee_profile_wave = np.array(wave)
-        self._ee_profile_interp = ee_interp
-        
+        #loading in new PSF library
+        turbulence_dict = {'10%': 'PSF_PC10_2024-06-12.fits',
+                           '25%': 'PSF_PC25_2024-06-12.fits',
+                           '50%': 'PSF_PC50_2024-06-12.fits',
+                           '75%': 'PSF_PC75_2024-06-12.fits',
+                           '90%': 'PSF_PC90_2024-06-12.fits'
+                           }
+        ee_model = os.path.join(bfile_dir, 'mavis/{0}'.format(turbulence_dict[turbulence_cat]))
+        self._ee_profile_wave = fits.getdata(ee_model, ext=0)/1e3
+        psf_rad = fits.getdata(ee_model, ext=1)/self.pix_scale
+        psf_ee = fits.getdata(ee_model, ext=2)
+
+        #store the interpolator object
+        self._ee_profile_interp = interp1d(psf_rad, psf_ee, axis=0)
+
+        #assign EE generator
         self._ee = self._EE_lookup
-       
+
 
     def _EE_lookup(self, seeing, binning=1, **kwargs):
         """
-        A quick and dirty lookup/interpolation function to generate ensquared 
-        energy profiles based on simulations of the MAVIS PSF.
+        A quick and dirty interpolation function to generate ensquared 
+        energy within a given aperture using the pre-computed MAVIS PSF model..
         """
-        #Seeing variation is not included in generation of the PSF right now. Current models
-        #are based on an average Cn^2 profile.
-        iwave = np.argsort(self._ee_profile_wave)
+
+        #given input binning/radius, generate EE array at each modelled wavelength
+        ee_out = self._ee_profile_interp(binning/2)
         
-        wave_out = np.zeros(len(iwave), dtype=np.float)
-        ee_out = np.zeros(len(iwave), dtype=np.float)
-        for ii, idx in enumerate(iwave): #sorted arguments?
-            wave_out[ii] = self._ee_profile_wave[idx]
-            ee_out[ii] = self._ee_profile_interp[idx](binning/2.) #lookup tables are in radius, not diameter.
-   
-        ee_interped = interp1d(wave_out, ee_out, fill_value='extrapolate')(self.inst_wavelength)
+        #now linearly interpolate to every wavelength
+        ee_interped = interp1d(self._ee_profile_wave, ee_out, fill_value='extrapolate')(self.inst_wavelength)
+
         return ee_interped, binning**2
+
 
