@@ -404,11 +404,11 @@ class MAVIS_IFS(IFSInstrument):
         self.total_throughput *= self.ao_throughput
 
         #loading in new PSF library
-        turbulence_dict = {'10%': 'PSF_PC10_2024-06-12.fits',
-                           '25%': 'PSF_PC25_2024-06-12.fits',
-                           '50%': 'PSF_PC50_2024-06-12.fits',
-                           '75%': 'PSF_PC75_2024-06-12.fits',
-                           '90%': 'PSF_PC90_2024-06-12.fits'
+        turbulence_dict = {'10%': 'PSF_PC10_2024-06-27.fits',
+                           '25%': 'PSF_PC25_2024-06-27.fits',
+                           '50%': 'PSF_PC50_2024-06-27.fits',
+                           '75%': 'PSF_PC75_2024-06-27.fits',
+                           '90%': 'PSF_PC90_2024-06-27.fits'
                            }
         ee_model = os.path.join(bfile_dir, 'mavis/{0}'.format(turbulence_dict[turbulence_cat]))
         self._ee_profile_wave = fits.getdata(ee_model, ext=0)/1e3
