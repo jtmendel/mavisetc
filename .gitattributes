@@ -1,0 +1,1 @@
+MAVIS_stellar_library.fits filter=lfs diff=lfs merge=lfs -text
