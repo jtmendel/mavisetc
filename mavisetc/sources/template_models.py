@@ -83,7 +83,7 @@ class template_source():
         
         ftrans = np.maximum(ftrans, 0.)
         trans_interp = np.asarray(np.interp(self.red_wavelength, fwl/1e4, 
-                                  ftrans, left=0., right=0.), dtype=np.float)
+                                  ftrans, left=0., right=0.), dtype=float)
 
         #normalize transmission
         ttrans = np.trapz(np.copy(trans_interp)/self.red_wavelength, self.red_wavelength)
@@ -100,8 +100,8 @@ class template_source():
 
         with fits.open(os.path.join(self.bfile_dir, self.template_dict[template])) as ffile:
             tab = ffile[1].data
-            temp_flux = np.array(tab.FLUX, dtype=np.float)
-            temp_wave = np.array(tab.WAVELENGTH, dtype=np.float)
+            temp_flux = np.array(tab.FLUX, dtype=float)
+            temp_wave = np.array(tab.WAVELENGTH, dtype=float)
 
         self.wavelength = temp_wave/1e4 #in um
         self.step = np.diff(self.wavelength)[0]
@@ -190,7 +190,7 @@ class stellar_source():
             self.wavelength = np.asarray(file[1].data)/1e4
 
         #template parameters (some populated later)
-        self.res = 3000
+        self.res = 20000
         self.res_pix = None
         self.step = np.diff(self.wavelength)[0]
         self.res_pix = self.wavelength / self.res / self.step / 2.355
@@ -231,7 +231,7 @@ class stellar_source():
         
         ftrans = np.maximum(ftrans, 0.)
         trans_interp = np.asarray(np.interp(self.red_wavelength, fwl/1e4, 
-                                  ftrans, left=0., right=0.), dtype=np.float)
+                                  ftrans, left=0., right=0.), dtype=float)
 
         #normalize transmission
         ttrans = np.trapz(np.copy(trans_interp)/self.red_wavelength, self.red_wavelength)

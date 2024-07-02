@@ -142,7 +142,7 @@ class IFSInstrument:
         
         if sn is not None and ndit is None: #provided S/N, work out ndit to reach S/N 5
             ndit = np.sqrt(self.noise)*sn/self.source_obs
-            ndit_i = np.int(np.ceil(np.interp(ref_wl, self.inst_wavelength, ndit)))
+            ndit_i = int(np.ceil(np.interp(ref_wl, self.inst_wavelength, ndit)))
             print("NDIT={2} to reach S/N={0} with DIT={1}s at {3:6.4f}um".format(sn, dit, ndit_i, ref_wl))
         elif sn is None and ndit is not None:
             sn = np.sqrt(ndit)*self.source_obs / np.sqrt(self.noise)
@@ -321,7 +321,7 @@ class MAVIS_IFS(IFSInstrument):
         self.dlam = grating_wmin / grating_rmin / 1e4
         self.step = self.dlam / 2.3
 
-        npix_wave = min(self.live_pix_det, np.int(np.floor(grating_wmin/self.step/1e4))) #avoid coverage over an octave
+        npix_wave = min(self.live_pix_det, int(np.floor(grating_wmin/self.step/1e4))) #avoid coverage over an octave
 
         if inst_wavelength is not None:
             self.inst_wavelength = inst_wavelength

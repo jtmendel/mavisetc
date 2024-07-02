@@ -3,7 +3,7 @@ cimport numpy as np
 import cython
 from libc.math cimport pow, sqrt, exp, M_PI, floor
 
-DTYPE = np.float
+DTYPE = float
 ctypedef np.float_t DTYPE_t
 ctypedef np.int_t DTYPE_i
 
@@ -22,7 +22,7 @@ def smooth(np.ndarray[DTYPE_t, ndim=1] flux, np.ndarray[DTYPE_t, ndim=1] sigma):
     cdef np.ndarray[DTYPE_t, ndim=1] ttpix = np.zeros(N_elem, dtype=DTYPE)
 
     cdef np.ndarray[DTYPE_t, ndim=1]  width = 2.355*6*sigma #sample the distribution out to 3*FWHM
-    cdef np.ndarray[DTYPE_i, ndim=1]  spix = np.asarray(np.floor(sigma*6.), dtype=np.int)
+    cdef np.ndarray[DTYPE_i, ndim=1]  spix = np.asarray(np.floor(sigma*6.), dtype=int)
 
     for pix in range(N_elem):
         if width[pix]/2.355 < 1.0:

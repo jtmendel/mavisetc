@@ -56,7 +56,7 @@ class ImagingInstrument:
 
         ftrans = np.maximum(ftrans, 0.)
         trans_interp = np.asarray(np.interp(self.inst_wavelength, fwl/1e4, 
-                                  ftrans, left=0., right=0.), dtype=np.float)
+                                  ftrans, left=0., right=0.), dtype=float)
 
         #normalize transmission
         ttrans = np.trapz(np.copy(trans_interp), self.inst_wavelength)
@@ -162,7 +162,7 @@ class ImagingInstrument:
             self.noise = self.obj_noise + self.sky_noise + self.lgs_noise + self.read_noise + self.dark_noise #per dit
         
             if sn is not None and ndit is None: #provided S/N, work out ndit to reach target S/N
-                indit = np.int(np.ceil(np.sqrt(self.noise)*sn/self.source_obs.sum()))
+                indit = int(np.ceil(np.sqrt(self.noise)*sn/self.source_obs.sum()))
                 print("NDIT={2} to reach S/N={0} with DIT={1} in {3}".format(sn, dit, indit, iband))
             elif sn is None and ndit is not None:
                 isn = np.sqrt(ndit)*self.source_obs.sum() / np.sqrt(self.noise)
@@ -257,10 +257,8 @@ class MAVIS_Imager(ImagingInstrument):
     and more elaborate PSF model.
     """
 
-    def __init__(self, pix_scale=0.00736, jitter=5, detector=None, telescope=None, notch_exp=1):
-        #check for reasonable jitter values
-        if jitter not in [5,10,20,30,40]:
-            raise ValueError('Input jitter must be one of 5, 10, 20, 30, or 40 (mas)')
+    def __init__(self, pix_scale=0.00736, detector=None, telescope=None, notch_exp=1,
+                 turbulence_cat='50%'):
 
         #initialize the model base
         ImagingInstrument.__init__(self)

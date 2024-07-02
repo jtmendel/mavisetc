@@ -106,7 +106,7 @@ class sky_source():
         
         ftrans = np.maximum(ftrans, 0.)
         trans_interp = np.asarray(np.interp(wavelength, fwl/1e4, 
-                                  ftrans, left=0., right=0.), dtype=np.float)
+                                  ftrans, left=0., right=0.), dtype=float)
 
         #normalize transmission
         ttrans = np.trapz(np.copy(trans_interp)/wavelength, wavelength)
@@ -146,9 +146,9 @@ class sky_source():
     def _read_sky(self, skyfile):
         with fits.open(skyfile) as sfile:
             tab = sfile[1].data
-            self.wavelength = np.asarray(tab['LAM'], dtype=np.float) / 1e3
-            self.trans = np.asarray(tab['TRANS'], dtype=np.float)
-            self.emm = np.asarray(tab['FLUX'], dtype=np.float)
+            self.wavelength = np.asarray(tab['LAM'], dtype=float) / 1e3
+            self.trans = np.asarray(tab['TRANS'], dtype=float)
+            self.emm = np.asarray(tab['FLUX'], dtype=float)
       
         #update resolution in pixels
         self.res_pix = self.wavelength / self.res / self.step / 2.355
