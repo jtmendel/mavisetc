@@ -51,6 +51,7 @@ class lasd_source():
 
         #filter parameters that will be populated later
         self.transmission = None
+        self.type = None
 
     def templates(self):
         return self.template_dict.keys()
@@ -78,8 +79,8 @@ class lasd_source():
 #        fwl, ftrans = fobj.transmission
 #        
 #        ftrans = np.maximum(ftrans, 0.)
-#        trans_interp = np.asarray(np.interp(self.red_wavelength, fwl/1e4, 
-#                                  ftrans, left=0., right=0.), dtype=np.float)
+#        trans_interp = np.asarray(interp(self.red_wavelength, fwl/1e4, 
+#                                  ftrans, left=0., right=0.), dtype=float)
 #
 #        #normalize transmission
 #        ttrans = np.trapz(np.copy(trans_interp)/self.red_wavelength, self.red_wavelength)
@@ -100,8 +101,8 @@ class lasd_source():
                     temp = line.strip().split(None) 
                     itemp_wave.append(float(temp[0])) #microns
                     itemp_flux.append(float(temp[1]))
-        temp_flux = np.asarray(itemp_flux, dtype=np.float)
-        temp_wave = np.asarray(itemp_wave, dtype=np.float)
+        temp_flux = np.asarray(itemp_flux, dtype=float)
+        temp_wave = np.asarray(itemp_wave, dtype=float)
 
 
         #for correction to absolute mags

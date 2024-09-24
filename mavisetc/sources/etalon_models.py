@@ -73,9 +73,7 @@ class etalon_source():
 
         #filter parameters that will be populated later
         self.transmission = None
-
-
-
+        self.type = 'lamp'
 
     def _airy_disc_fcn(I0,x):
         out_num = 2*sp.special.jv(1,x)
@@ -91,7 +89,7 @@ class etalon_source():
         return out
 
 
-    def set_params(self, lambda_vec=np.linspace(370,940,100000), input_focal_ratio=10000.0, 
+    def set_params(self, lambda_vec=np.linspace(370,940,500000), input_focal_ratio=10000.0, 
                  mirror_separation=0.08, mirror1_reflectivity=0.9, mirror2_reflectivity=0.9, 
                  n_of_gap_material=1.0, angle_of_incidence=0.0, clear_aperture=5.0, 
                  residual_power = 3.0, mirror_tilt_error=2.5e-7, rms_surface_irregularity = 1.5,
@@ -129,7 +127,7 @@ class etalon_source():
         self.compute_etalon_parameters()
 
         #set some template bits
-        self.res = 100000
+        self.res = 30000
 
         self.wavelength = self.lambda_vec/1e3 #microns
         self.step = np.diff(self.wavelength)[0] #microns
@@ -262,10 +260,12 @@ class etalon_source():
         # interp_flux = np.interp(self.wavelength, temp_wave, temp_flux)/self.step #erg/s/cm^2/micron
         # self.template_flux = interp_flux * temp_wave**2 *1e4 / self.clight #in erg/s/cm^2/Hz
 
-        etalon_in_erg_s_cm2_micron = (self.etalon_at_mavis_focal_plane_mw *1e9 / 1e3) / self.step #erg/s/cm^2/um
+        etalon_in_erg_s_cm2_micron = (self.etalon_at_mavis_focal_plane_mw *1e7 / 1e3) / 10**2 / self.step #erg/s/cm^2/um
         template_flux = etalon_in_erg_s_cm2_micron * self.wavelength**2 * 1e4 / self.clight_as #erg/s/cm^2/Hz
 
         photons = template_flux *100**2 / self.hes / self.wavelength #photons/s/m^2/um.
-        
+
+        temp = etalon_in_erg_s_cm2_micron * 100**2 * self.wavelength*1e4 / self.hes / self.clight_as
+
         return self.wavelength, photons #photons/s/m^2/um.  If self.norm_sb then arcsec^-2
 

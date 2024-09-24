@@ -54,7 +54,7 @@ class template_source():
 
         #filter parameters that will be populated later
         self.transmission = None
-
+        self.type = None
 
     def templates(self):
         return self.template_dict.keys()
@@ -204,7 +204,7 @@ class stellar_source():
         
         #filter parameters that will be populated later
         self.transmission = None
-
+        self.type = None
 
     def _set_redshift(self, redshift):
         #update internal working redshift
@@ -317,8 +317,8 @@ class stellar_source():
 
 class lamp_source():
     """
-    Class for defining source objects.  This just pulls in fits files
-    from the Kinney and Calzetti template library.
+    Class for parsing the lamp sources. This just pulls in the .csv files
+    that include the radiometric correction.
     """
     
     def __init__(self):
@@ -357,10 +357,10 @@ class lamp_source():
         self.wavelength = None
         self.red_wavelength = None
         self.red_step = None
-
+        
         #filter parameters that will be populated later
         self.transmission = None
-
+        self.type = 'lamp'
 
     def templates(self):
         return self.template_dict.keys()
@@ -369,6 +369,7 @@ class lamp_source():
         if template not in self.template_dict:
             raise("Template must be one of {0}".format(','.join(list(self.templates()))))
 
+        #the resolving power is a total fudge here. Need to recast the line models as 
         if template in ['Etalon_hrblue', 'Etalon_lrblue', 'Etalon_hrred', 'Etalon_lrred']:
             self.res = 100000
         else:
@@ -384,6 +385,9 @@ class lamp_source():
         temp_flux = np.asarray(temp_flux)
         temp_wave = np.asarray(temp_wave)
 
+        dwave_step = np.r_[np.diff(temp_wave), np.diff(temp_wave)[-1:]]
+        temp_flux /= dwave_step #erg/s/cm^2/microns  
+
         #ensure sampling onto a regular grid
         wave_low, wave_high = temp_wave.min(), temp_wave.max()
         npix = len(temp_wave)
@@ -393,13 +397,12 @@ class lamp_source():
         self.res_pix = self.wavelength / self.res / self.step / 2.355
         
         #interpolate flux onto regular grid
-        interp_flux = np.interp(self.wavelength, temp_wave, temp_flux)/self.step #erg/s/cm^2/micron
-
+        interp_flux = np.interp(self.wavelength, temp_wave, temp_flux) #erg/s/cm^2/micron on the instrument wavelength grid
         self.template_flux = interp_flux * temp_wave**2 *1e4 / self.clight #in erg/s/cm^2/Hz
         return 
         
 
-    def set_params(self, template=None, norm='point', **kwargs):
+    def set_params(self, template=None, **kwargs):
         """
         Needs information
         """
@@ -410,8 +413,6 @@ class lamp_source():
         
         #set normalization type
         self.norm_sb = False
-        if norm == 'extended':
-            self.norm_sb =  True
 
         return
  

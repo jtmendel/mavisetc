@@ -86,7 +86,7 @@ class IFSInstrument:
         
         #source_resampled = np.interp(self.inst_wavelength, source_wave, conv_source)
         
-        return source_resampled
+        return source_resampled #photons/s/m^2/um
 
 
     def calc_sn(self, source, sky=None, lgs=None, dit=3600., 
@@ -213,58 +213,71 @@ class IFSInstrument:
 
         #generate source
         source_resampled = self.make_source_spectrum(source)
- 
-        #if a sky object is also supplied, convolve it to match the instrument properties
-        if sky is not None:
-            sky_emm_resampled, sky_trans_resampled = self.make_sky_spectrum(sky)
+
+        if source.type == 'lamp': #separate handling for lamp-type sources
+            #plate scale in "/mm at the PFR output
+            plate_scale = 0.737
+            
+            #source_resmapled has units of ph/s/m^2/micron at the instrument focal plane 
+            #need to do some conversion to get this into the frame of the spectrograph
+            self.source_obs = np.copy(source_resampled)*self.total_throughput*self.step*\
+                                self.pix_scale**2 / (plate_scale*1000)**2 / self.telescope_throughput
+
+            return None, self.source_obs
+
         else:
-            sky_trans_resampled = np.ones(len(self.inst_wavelength))
-            sky_emm_resampled = np.zeros(len(self.inst_wavelength))
 
-        #if an LGS object is supplied generate the appropriate spectrum to be included
-        if lgs is not None:
-            lgs_resampled = self.make_source_spectrum(lgs)
-        else:
-            lgs_resampled = np.zeros(len(self.inst_wavelength))
-
-
-        #store transmission spectrum
-        self.sky_trans = np.copy(sky_trans_resampled)
-        
-        #estimate the ensquared energy and pixel area
-        self.obs_ee, self.obs_area = self._ee(seeing, binning=binning, strehl=strehl)
-        
-        #total source spectrum
-        if source.norm_sb:
-            self.cfact = sky_trans_resampled*dit*self.total_throughput*self.step*\
-                         self.telescope.area*self.pix_scale**2 * self.obs_area
-        else:
-            #get ensquared energy and area in pixels
-            self.cfact = sky_trans_resampled*dit*self.total_throughput*self.step*\
-                         self.telescope.area*self.obs_ee
-
-        self.source_obs = np.copy(source_resampled)*self.cfact
-
-        #sky is always done correctly-ish.
-        self.sky_obs = np.copy(sky_emm_resampled)*dit*self.total_throughput*\
-                  self.step*self.telescope.area*self.pix_scale**2 * self.obs_area #total area
-
-        #sky is always done correctly-ish.
-        self.lgs_obs = np.copy(lgs_resampled)*dit*self.total_throughput*\
-                  self.step*self.telescope.area*self.pix_scale**2 * self.obs_area #total area
-        
-        self.noise = self.source_obs + self.sky_obs + self.lgs_obs + self.obs_area*(self.detector.rn**2 + self.detector.dark*dit) #per dit
-
-        # generate noisy realisations of the data
-        rng = np.random.default_rng()
-        spec_all = self.source_obs[np.newaxis, :] + rng.normal(loc=0, scale=np.tile(np.sqrt(self.noise), (ndit,1))) 
-       
-        spec_out = np.mean(spec_all, axis=0)
-        spec_out[self.notch] = 0.
-
-
-        return (spec_out * 6.626196e-27 * 2.998e14 / self.inst_wavelength / self.cfact / 100**2 / 1e4, 
-                self.source_obs * 6.626196e-27 * 2.998e14 / self.inst_wavelength / self.cfact / 100**2 / 1e4)
+            #if a sky object is also supplied, convolve it to match the instrument properties
+            if sky is not None:
+                sky_emm_resampled, sky_trans_resampled = self.make_sky_spectrum(sky)
+            else:
+                sky_trans_resampled = np.ones(len(self.inst_wavelength))
+                sky_emm_resampled = np.zeros(len(self.inst_wavelength))
+    
+            #if an LGS object is supplied generate the appropriate spectrum to be included
+            if lgs is not None:
+                lgs_resampled = self.make_source_spectrum(lgs)
+            else:
+                lgs_resampled = np.zeros(len(self.inst_wavelength))
+    
+    
+            #store transmission spectrum
+            self.sky_trans = np.copy(sky_trans_resampled)
+            
+            #estimate the ensquared energy and pixel area
+            self.obs_ee, self.obs_area = self._ee(seeing, binning=binning, strehl=strehl)
+            
+            #total source spectrum
+            if source.norm_sb:
+                self.cfact = sky_trans_resampled*dit*self.total_throughput*self.step*\
+                             self.telescope.area*self.pix_scale**2 * self.obs_area
+            else:
+                #get ensquared energy and area in pixels
+                self.cfact = sky_trans_resampled*dit*self.total_throughput*self.step*\
+                             self.telescope.area*self.obs_ee
+    
+            self.source_obs = np.copy(source_resampled)*self.cfact
+    
+            #sky is always done correctly-ish.
+            self.sky_obs = np.copy(sky_emm_resampled)*dit*self.total_throughput*\
+                      self.step*self.telescope.area*self.pix_scale**2 * self.obs_area #total area
+    
+            #sky is always done correctly-ish.
+            self.lgs_obs = np.copy(lgs_resampled)*dit*self.total_throughput*\
+                      self.step*self.telescope.area*self.pix_scale**2 * self.obs_area #total area
+            
+            self.noise = self.source_obs + self.sky_obs + self.lgs_obs + self.obs_area*(self.detector.rn**2 + self.detector.dark*dit) #per dit
+    
+            # generate noisy realisations of the data
+            rng = np.random.default_rng()
+            spec_all = self.source_obs[np.newaxis, :] + rng.normal(loc=0, scale=np.tile(np.sqrt(self.noise), (ndit,1))) 
+           
+            spec_out = np.mean(spec_all, axis=0)
+            spec_out[self.notch] = 0.
+    
+    
+            return (spec_out * 6.626196e-27 * 2.998e14 / self.inst_wavelength / self.cfact / 100**2 / 1e4, 
+                    self.source_obs * 6.626196e-27 * 2.998e14 / self.inst_wavelength / self.cfact / 100**2 / 1e4)
 
 
 
@@ -312,7 +325,7 @@ class MAVIS_IFS(IFSInstrument):
                 'HR-blue': (4250., 12800.),
                 'HR-red': (6300., 9600.),
                 }
-        self.wmin, self.wmax = 3700./1e4, 10070./1e4
+        self.wmin, self.wmax = 3700./1e4, 9400./1e4
 
         #pull correct grating parameters
         grating_wmin, grating_rmin = self.grating_dict[mode]
@@ -330,7 +343,7 @@ class MAVIS_IFS(IFSInstrument):
             self.res_pix = self.inst_wavelength / self.res_power_interp / self.step / 2.355
         else:   
             self.inst_wavelength = np.arange(npix_wave)*self.step + grating_wmin / 1e4
-            self.wmin_eff, self.wmax_eff = self.inst_wavelength[0], self.inst_wavelength[-1]
+            self.wmin_eff, self.wmax_eff = self.inst_wavelength[0], min(self.inst_wavelength[-1], self.wmax)
             self.res_power_interp = self.inst_wavelength / 2.3 / self.step
             self.res_pix = self.inst_wavelength / self.res_power_interp / self.step / 2.355
 
@@ -408,7 +421,8 @@ class MAVIS_IFS(IFSInstrument):
                            '25%': 'PSF_PC25_2024-06-27.fits',
                            '50%': 'PSF_PC50_2024-06-27.fits',
                            '75%': 'PSF_PC75_2024-06-27.fits',
-                           '90%': 'PSF_PC90_2024-06-27.fits'
+                           '90%': 'PSF_PC90_2024-06-27.fits',
+                           'TLR': 'PSF_TLRatmo_2024-08-28.fits'
                            }
         ee_model = os.path.join(bfile_dir, 'mavis/{0}'.format(turbulence_dict[turbulence_cat]))
         self._ee_profile_wave = fits.getdata(ee_model, ext=0)/1e3

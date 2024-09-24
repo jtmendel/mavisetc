@@ -29,6 +29,7 @@ class flat_source():
         self.mag2cgs = np.log10(self.lsun/4.0/np.pi/(self.pc2cm*self.pc2cm)/100.)
        
         self.wavelength = np.arange(300,30000,1)/1e4 #um
+        self.type = None
 
     def _set_filter(self, filt):
         #fetch filter transmission curves from FSPS

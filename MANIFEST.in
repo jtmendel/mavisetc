@@ -3,6 +3,7 @@ include mavisetc/data/mavis/PSF_PC25_2024-06-27.fits
 include mavisetc/data/mavis/PSF_PC50_2024-06-27.fits
 include mavisetc/data/mavis/PSF_PC75_2024-06-27.fits
 include mavisetc/data/mavis/PSF_PC90_2024-06-27.fits
+include mavisetc/data/mavis/PSF_TLRatmo_2024-08-28.fits
 include mavisetc/data/mavis/MAVIS_throughput_spec_2024-05-14.csv
 include mavisetc/data/mavis/mavis_AOM_throughput.csv
 include mavisetc/data/mavis/notch_throughput.csv

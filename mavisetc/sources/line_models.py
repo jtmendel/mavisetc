@@ -27,7 +27,8 @@ class line_source():
         #for correction to absolute mags
         self.mag2cgs = np.log10(self.lsun/4.0/np.pi/(self.pc2cm*self.pc2cm)/100.)
         
-        
+        self.type = None
+
     def _set_redshift(self, redshift):
         #update internal working redshift
         self.redshift = redshift
