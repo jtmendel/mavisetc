@@ -106,7 +106,7 @@ class lgs_source():
         self.red_wavelength = np.copy(wavelength)
 
         #generate line
-        sim_nad = self._make_line(wavelength, resolution) #photons/s/cm2/arcsec/um/s/cm^2/um
+        sim_nad = self._make_line(wavelength, resolution) #photons/s/cm2/arcsec/um
         
         return wavelength, sim_nad
 

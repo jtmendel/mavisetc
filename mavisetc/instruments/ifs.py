@@ -137,8 +137,8 @@ class IFSInstrument:
         self.lgs_obs = np.copy(lgs_resampled)*dit*self.total_throughput*\
                   self.step*self.telescope.area*self.pix_scale**2 * self.obs_area
 
-        #total noise calculation
-        self.noise = self.source_obs + self.sky_obs + self.lgs_obs + self.obs_area*(self.detector.rn**2 + self.detector.dark*dit) #per dit
+        #total noise calculation. Includes term for sampling of spatial elements by detector (factor 1.05)
+        self.noise = self.source_obs + self.sky_obs + self.lgs_obs + (self.obs_area*1.05**2)*(self.detector.rn**2 + self.detector.dark*dit) #per dit
         
         if sn is not None and ndit is None: #provided S/N, work out ndit to reach S/N 5
             ndit = np.sqrt(self.noise)*sn/self.source_obs
@@ -195,9 +195,9 @@ class IFSInstrument:
         self.lgs_obs = np.copy(lgs_resampled)*dit*self.total_throughput*\
                   self.step*self.telescope.area*self.pix_scale**2 * self.obs_area #total area
         
-        #quadratic terms for solution
+        #quadratic terms for solution. noise term includes sampling on detector.
         a = ndit / sn**2
-        c = self.sky_obs + self.lgs_obs + self.obs_area*(self.detector.rn**2 + self.detector.dark*dit)
+        c = self.sky_obs + self.lgs_obs + (self.obs_area*1.05**2)*(self.detector.rn**2 + self.detector.dark*dit)
 
         source_obs = 0.5*(1. + np.sqrt(1. + 4*a*c)) * sn**2 / ndit
 
@@ -266,7 +266,7 @@ class IFSInstrument:
             self.lgs_obs = np.copy(lgs_resampled)*dit*self.total_throughput*\
                       self.step*self.telescope.area*self.pix_scale**2 * self.obs_area #total area
             
-            self.noise = self.source_obs + self.sky_obs + self.lgs_obs + self.obs_area*(self.detector.rn**2 + self.detector.dark*dit) #per dit
+            self.noise = self.source_obs + self.sky_obs + self.lgs_obs + (self.obs_area*1.05**2)*(self.detector.rn**2 + self.detector.dark*dit) #per dit
     
             # generate noisy realisations of the data
             rng = np.random.default_rng()
@@ -291,7 +291,8 @@ class MAVIS_IFS(IFSInstrument):
     """
 
     def __init__(self, mode=None, pix_scale=0.025, jitter=5, live_fraction=0.95, 
-                 detector=None, telescope=None, inst_wavelength=None, turbulence_cat="50%"):
+                 detector=None, telescope=None, inst_wavelength=None, turbulence_cat="50%-plus-spec",
+                 throughput_model="2025-03-06", aom_model="2025-03-14"):
         
         #check for reasonable jitter values
         if jitter not in [5,10,20,30,40]:
@@ -332,7 +333,7 @@ class MAVIS_IFS(IFSInstrument):
 
         #generate full wavelength and resolution arrays
         self.dlam = grating_wmin / grating_rmin / 1e4
-        self.step = self.dlam / 2.3
+        self.step = self.dlam / 2.1
 
         npix_wave = min(self.live_pix_det, int(np.floor(grating_wmin/self.step/1e4))) #avoid coverage over an octave
 
@@ -344,7 +345,7 @@ class MAVIS_IFS(IFSInstrument):
         else:   
             self.inst_wavelength = np.arange(npix_wave)*self.step + grating_wmin / 1e4
             self.wmin_eff, self.wmax_eff = self.inst_wavelength[0], min(self.inst_wavelength[-1], self.wmax)
-            self.res_power_interp = self.inst_wavelength / 2.3 / self.step
+            self.res_power_interp = self.inst_wavelength / 2.1 / self.step
             self.res_pix = self.inst_wavelength / self.res_power_interp / self.step / 2.355
 
         #get path for bundled package files
@@ -368,8 +369,13 @@ class MAVIS_IFS(IFSInstrument):
                 'HR-blue': '50HRB',
                 'HR-red': '50HRR',
                 }
- 
-        data = asc.read(os.path.join(bfile_dir, 'mavis/MAVIS_throughput_spec_2024-05-14.csv'), encoding='utf-8-sig')
+
+        #build the throughput file
+        tpt_file = 'MAVIS_throughput_spec_{0}.csv'.format(throughput_model)
+        if not os.path.exists(os.path.join(bfile_dir, 'mavis', tpt_file)):
+            raise ValueError('Throughput model {0} not found'.format(tpt_file)) 
+
+        data = asc.read(os.path.join(bfile_dir, 'mavis', tpt_file), encoding='utf-8-sig')
         twave = np.array(data['Wavelength'])/1e3
         ttpt = np.array(data[tpt_dict[mode]])
         self.instrument_throughput = interp1d(twave[ttpt > 0], ttpt[ttpt > 0], fill_value='extrapolate')(self.inst_wavelength)
@@ -395,7 +401,11 @@ class MAVIS_IFS(IFSInstrument):
         self.notch = (self.inst_wavelength > 0.580) & (self.inst_wavelength < 0.597)
 
         #AOM throughput estimate
-        data = np.array(asc.read(os.path.join(bfile_dir, 'mavis/mavis_AOM_throughput.csv')))
+        aom_file = 'mavis_AOM_throughput_{0}_spec.csv'.format(aom_model)
+        if not os.path.exists(os.path.join(bfile_dir, 'mavis', aom_file)):
+            raise ValueError('AOM model {0} not found'.format(aom_file)) 
+        
+        data = np.array(asc.read(os.path.join(bfile_dir, 'mavis', aom_file)))
         twave = np.array(data['col1'])
         ttpt = np.array(data['col2'])
 
@@ -408,8 +418,9 @@ class MAVIS_IFS(IFSInstrument):
         twave = np.array(data['col1'])/1000.
         ttpt = np.array(data['col2'])/100.
 
-        self.notch_throughput = interp1d(np.array(twave), np.array(ttpt), bounds_error=False,
-                                    fill_value='extrapolate')(self.inst_wavelength).clip(0,1)
+        #self.notch_throughput = interp1d(np.array(twave), np.array(ttpt), bounds_error=False,
+        #                            fill_value='extrapolate')(self.inst_wavelength).clip(0,1)
+        self.notch_throughput = np.ones(len(self.inst_wavelength)) #flat because it's folded into the AOM budget
 
         self.ao_throughput *= self.notch_throughput
 
@@ -422,8 +433,10 @@ class MAVIS_IFS(IFSInstrument):
                            '50%': 'PSF_PC50_2024-06-27.fits',
                            '75%': 'PSF_PC75_2024-06-27.fits',
                            '90%': 'PSF_PC90_2024-06-27.fits',
-                           'TLR': 'PSF_TLRatmo_2024-08-28.fits'
+                           'TLR': 'PSF_TLRatmo_2024-08-28.fits',
+                           '50%-plus-spec': 'PSF_PC50_spec-{0}mas_2025-04-03.fits'.format(int(pix_scale*1e3))
                            }
+            
         ee_model = os.path.join(bfile_dir, 'mavis/{0}'.format(turbulence_dict[turbulence_cat]))
         self._ee_profile_wave = fits.getdata(ee_model, ext=0)/1e3
         psf_rad = fits.getdata(ee_model, ext=1)/self.pix_scale

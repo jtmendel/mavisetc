@@ -257,8 +257,8 @@ class MAVIS_Imager(ImagingInstrument):
     and more elaborate PSF model.
     """
 
-    def __init__(self, pix_scale=0.00736, detector=None, telescope=None, notch_exp=1,
-                 turbulence_cat='50%'):
+    def __init__(self, pix_scale=0.007367, detector=None, telescope=None, notch_exp=1,
+                 turbulence_cat='50%', aom_model='2025-03-14'):
 
         #initialize the model base
         ImagingInstrument.__init__(self)
@@ -296,7 +296,12 @@ class MAVIS_Imager(ImagingInstrument):
         bfile_dir = os.path.join(os.path.dirname(sys.modules['mavisetc'].__file__), 'data')
 
         #fold in AOM throughput
-        data = np.array(asc.read(os.path.join(bfile_dir, 'mavis/mavis_AOM_throughput.csv')))
+        #AOM throughput estimate
+        aom_file = 'mavis_AOM_throughput_{0}_img.csv'.format(aom_model)
+        if not os.path.exists(os.path.join(bfile_dir, 'mavis', aom_file)):
+            raise ValueError('AOM model {0} not found'.format(aom_file)) 
+        
+        data = np.array(asc.read(os.path.join(bfile_dir, 'mavis', aom_file)))
         twave = np.array(data['col1'])
         ttpt = np.array(data['col2'])
 
@@ -311,8 +316,9 @@ class MAVIS_Imager(ImagingInstrument):
         twave = np.array(data['col1'])/1000.
         ttpt = np.array(data['col2'])/100.
 
-        self.notch_throughput = interp1d(np.array(twave), np.array(ttpt), bounds_error=False,
-                                    fill_value='extrapolate')(self.inst_wavelength).clip(0,1)**notch_exp
+        #self.notch_throughput = interp1d(np.array(twave), np.array(ttpt), bounds_error=False,
+        #                            fill_value='extrapolate')(self.inst_wavelength).clip(0,1)**notch_exp
+        self.notch_throughput = np.ones(len(self.inst_wavelength))
 
         self.ao_throughput *= self.notch_throughput
 
@@ -325,7 +331,8 @@ class MAVIS_Imager(ImagingInstrument):
                            '25%': 'PSF_PC25_2024-06-27.fits',
                            '50%': 'PSF_PC50_2024-06-27.fits',
                            '75%': 'PSF_PC75_2024-06-27.fits',
-                           '90%': 'PSF_PC90_2024-06-27.fits'
+                           '90%': 'PSF_PC90_2024-06-27.fits',
+                           'TLR': 'PSF_TLRatmo_2024-08-28.fits'
                            }
         ee_model = os.path.join(bfile_dir, 'mavis/{0}'.format(turbulence_dict[turbulence_cat]))
         self._ee_profile_wave = fits.getdata(ee_model, ext=0)/1e3
