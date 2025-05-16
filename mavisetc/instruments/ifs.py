@@ -220,10 +220,19 @@ class IFSInstrument:
             
             #source_resmapled has units of ph/s/m^2/micron at the instrument focal plane 
             #need to do some conversion to get this into the frame of the spectrograph
-            self.source_obs = np.copy(source_resampled)*self.total_throughput*self.step*\
-                                self.pix_scale**2 / (plate_scale*1000)**2 / self.telescope_throughput
+            #output is phot/pixel at the detector.
+            self.source_obs = np.copy(source_resampled)*self.total_throughput*self.step*dit*\
+                                self.pix_scale**2 / (plate_scale*1000)**2 / self.telescope_throughput / 1.05**2 #spatial->detector mapping?
 
-            return None, self.source_obs
+            self.noise = self.source_obs + self.detector.rn**2 + self.detector.dark*dit
+
+            # generate noisy realisations of the data
+            rng = np.random.default_rng()
+            spec_all = self.source_obs[np.newaxis, :] + rng.normal(loc=0, scale=np.tile(np.sqrt(self.noise), (ndit,1))) 
+           
+            spec_out = np.mean(spec_all, axis=0)
+
+            return spec_out, self.source_obs
 
         else:
 

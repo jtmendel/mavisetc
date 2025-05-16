@@ -316,10 +316,11 @@ class MAVIS_Imager(ImagingInstrument):
         twave = np.array(data['col1'])/1000.
         ttpt = np.array(data['col2'])/100.
 
-        #self.notch_throughput = interp1d(np.array(twave), np.array(ttpt), bounds_error=False,
-        #                            fill_value='extrapolate')(self.inst_wavelength).clip(0,1)**notch_exp
-        self.notch_throughput = np.ones(len(self.inst_wavelength))
-
+        if notch_exp == 2: 
+            self.notch_throughput = interp1d(np.array(twave), np.array(ttpt), bounds_error=False,
+                                            fill_value='extrapolate')(self.inst_wavelength).clip(0,1)
+        else:
+            self.notch_throughput = np.ones(len(self.inst_wavelength))
         self.ao_throughput *= self.notch_throughput
 
         #fold in AOM+notch to the throughput budget

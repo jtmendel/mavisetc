@@ -41,7 +41,7 @@ class flat_source():
         
         ftrans = np.maximum(ftrans, 0.)
         trans_interp = np.asarray(np.interp(self.wavelength, fwl/1e4, 
-                                  ftrans, left=0., right=0.), dtype=np.float)
+                                  ftrans, left=0., right=0.), dtype=float)
 
         #normalize transmission
         ttrans = np.trapz(np.copy(trans_interp)/self.wavelength, self.wavelength)

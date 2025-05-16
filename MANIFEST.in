@@ -1,10 +1,15 @@
 include mavisetc/data/mavis/PSF_PC10_2024-06-27.fits
 include mavisetc/data/mavis/PSF_PC25_2024-06-27.fits
 include mavisetc/data/mavis/PSF_PC50_2024-06-27.fits
+include mavisetc/data/mavis/PSF_PC50_2025-05-14.fits
 include mavisetc/data/mavis/PSF_PC75_2024-06-27.fits
 include mavisetc/data/mavis/PSF_PC90_2024-06-27.fits
 include mavisetc/data/mavis/PSF_PC50_spec-25mas_2025-04-03.fits
 include mavisetc/data/mavis/PSF_PC50_spec-50mas_2025-04-03.fits
+include mavisetc/data/mavis/PSF_PC50_spec-25mas_2025-05-14.fits
+include mavisetc/data/mavis/PSF_PC50_spec-50mas_2025-05-14.fits
+include mavisetc/data/mavis/PSF_spec-25mas_2025-05-14.fits
+include mavisetc/data/mavis/PSF_spec-50mas_2025-05-14.fits
 include mavisetc/data/mavis/PSF_TLRatmo_2024-08-28.fits
 include mavisetc/data/mavis/MAVIS_throughput_spec_2024-05-14.csv
 include mavisetc/data/mavis/MAVIS_throughput_spec_2025-03-06.csv
@@ -168,6 +173,8 @@ include mavisetc/data/lamp_templates/Hector_Xe_to_Focus.csv
 include mavisetc/data/lamp_templates/Cd_to_Focus.csv
 include mavisetc/data/lamp_templates/Zn_to_Focus.csv
 include mavisetc/data/lamp_templates/LDLS_400um_Core_to_Focus_Etalon.csv
+include mavisetc/data/lamp_templates/LDLS_400um_Core_to_Focus.csv
+include mavisetc/data/lamp_templates/Thorlabs_SLS201L_QTH_to_Focus.csv
 include mavisetc/data/stellar_templates/MAVIS_stellar_library.fits
 include mavisetc/data/filters/cousins_i.dat
 include mavisetc/data/filters/cousins_r.dat
