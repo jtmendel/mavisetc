@@ -258,7 +258,7 @@ class MAVIS_Imager(ImagingInstrument):
     """
 
     def __init__(self, pix_scale=0.007367, detector=None, telescope=None, notch_exp=1,
-                 turbulence_cat='50%', aom_model='2025-03-14'):
+                 turbulence_cat='50%', aom_model='2025-03-14', throughput="requirement"):
 
         #initialize the model base
         ImagingInstrument.__init__(self)
@@ -330,7 +330,7 @@ class MAVIS_Imager(ImagingInstrument):
         #loading in new PSF library
         turbulence_dict = {'10%': 'PSF_PC10_2024-06-27.fits',
                            '25%': 'PSF_PC25_2024-06-27.fits',
-                           '50%': 'PSF_PC50_2024-06-27.fits',
+                           '50%': 'PSF_PC50_2025-05-14.fits',
                            '75%': 'PSF_PC75_2024-06-27.fits',
                            '90%': 'PSF_PC90_2024-06-27.fits',
                            'TLR': 'PSF_TLRatmo_2024-08-28.fits'

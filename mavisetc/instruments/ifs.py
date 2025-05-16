@@ -301,7 +301,7 @@ class MAVIS_IFS(IFSInstrument):
 
     def __init__(self, mode=None, pix_scale=0.025, jitter=5, live_fraction=0.95, 
                  detector=None, telescope=None, inst_wavelength=None, turbulence_cat="50%-plus-spec",
-                 throughput_model="2025-03-06", aom_model="2025-03-14"):
+                 throughput_model="2025-03-06", aom_model="2025-03-14", throughput="requirement"):
         
         #check for reasonable jitter values
         if jitter not in [5,10,20,30,40]:
@@ -401,10 +401,11 @@ class MAVIS_IFS(IFSInstrument):
         self.telescope_throughput = np.interp(self.inst_wavelength, self.telescope.telescope_wave, self.telescope.telescope_eff)
 
         #compute the combined throughput
+        scale = 0.55
+        if throughput == 'spec': scale = 1.
         self.total_throughput = self.telescope_throughput*\
                           self.qe*\
-                          self.instrument_throughput*0.75*0.55 # re-scaled to account for additional losses not currently dealt with
-                                                                     # in the throughput model 
+                          self.instrument_throughput*0.75*scale # in the throughput model 
 
         #patch in low throughput at the notch
         self.notch = (self.inst_wavelength > 0.580) & (self.inst_wavelength < 0.597)
@@ -439,11 +440,11 @@ class MAVIS_IFS(IFSInstrument):
         #loading in new PSF library
         turbulence_dict = {'10%': 'PSF_PC10_2024-06-27.fits',
                            '25%': 'PSF_PC25_2024-06-27.fits',
-                           '50%': 'PSF_PC50_2024-06-27.fits',
+                           '50%': 'PSF_PC50_2025-05-14.fits',
                            '75%': 'PSF_PC75_2024-06-27.fits',
                            '90%': 'PSF_PC90_2024-06-27.fits',
                            'TLR': 'PSF_TLRatmo_2024-08-28.fits',
-                           '50%-plus-spec': 'PSF_PC50_spec-{0}mas_2025-04-03.fits'.format(int(pix_scale*1e3))
+                           '50%-plus-spec': 'PSF_PC50_spec-{0}mas_2025-05-14.fits'.format(int(pix_scale*1e3))
                            }
             
         ee_model = os.path.join(bfile_dir, 'mavis/{0}'.format(turbulence_dict[turbulence_cat]))
