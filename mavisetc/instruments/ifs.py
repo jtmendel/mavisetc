@@ -217,12 +217,19 @@ class IFSInstrument:
         if source.type == 'lamp': #separate handling for lamp-type sources
             #plate scale in "/mm at the PFR output
             plate_scale = 0.737
-            
-            #source_resmapled has units of ph/s/m^2/micron at the instrument focal plane 
-            #need to do some conversion to get this into the frame of the spectrograph
-            #output is phot/pixel at the detector.
-            self.source_obs = np.copy(source_resampled)*self.total_throughput*self.step*dit*\
-                                self.pix_scale**2 / (plate_scale*1000)**2 / self.telescope_throughput / 1.05**2 #spatial->detector mapping?
+           
+            if source.template_norm == 'pinhole':
+                #source resampled has units of ph/s/micron at the instrument focal plane
+                #need to do some conversion to get this into the frame of the spectrograph
+                #output is phot/pixel at the detector
+                self.source_obs = np.copy(source_resampled)*self.total_throughput*self.step*dit*self._ee_pinhole/\
+                                  self.telescope_throughput / 1.05**2
+            elif source.template_norm == 'extended':
+                #source_resampled has units of ph/s/m^2/micron at the instrument focal plane 
+                #need to do some conversion to get this into the frame of the spectrograph
+                #output is phot/pixel at the detector.
+                self.source_obs = np.copy(source_resampled)*self.total_throughput*self.step*dit*\
+                                  self.pix_scale**2 / (plate_scale*1000)**2 / self.telescope_throughput / 1.05**2 #spatial->detector mapping?
 
             self.noise = self.source_obs + self.detector.rn**2 + self.detector.dark*dit
 
@@ -402,7 +409,7 @@ class MAVIS_IFS(IFSInstrument):
 
         #compute the combined throughput
         scale = 0.55
-        if throughput == 'spec': scale = 1.
+        if throughput == 'budget': scale = 1.
         self.total_throughput = self.telescope_throughput*\
                           self.qe*\
                           self.instrument_throughput*0.75*scale # in the throughput model 
@@ -423,18 +430,7 @@ class MAVIS_IFS(IFSInstrument):
                                     fill_value='extrapolate')(self.inst_wavelength).clip(0,1)
 
 
-        #include notch throughput as part of the AO system
-        data = np.array(asc.read(os.path.join(bfile_dir, 'mavis/notch_throughput.csv')))
-        twave = np.array(data['col1'])/1000.
-        ttpt = np.array(data['col2'])/100.
-
-        #self.notch_throughput = interp1d(np.array(twave), np.array(ttpt), bounds_error=False,
-        #                            fill_value='extrapolate')(self.inst_wavelength).clip(0,1)
-        self.notch_throughput = np.ones(len(self.inst_wavelength)) #flat because it's folded into the AOM budget
-
-        self.ao_throughput *= self.notch_throughput
-
-        #fold in AOM+notch to the throughput budget
+        #fold AOM into the throughput budget (NB: this includes the science path notch!)
         self.total_throughput *= self.ao_throughput
 
         #loading in new PSF library
@@ -458,6 +454,17 @@ class MAVIS_IFS(IFSInstrument):
         #assign EE generator
         self._ee = self._EE_lookup
 
+        # For source time "pinhole", which excludes AO PSF
+        #always load in the diffraction-limited pinhole EE as well
+        pinhole_model = os.path.join(bfile_dir, 'mavis/{0}'.format('PSF_spec-{0}mas_2025-05-14.fits'.format(int(pix_scale*1e3))))
+        self._pinhole_profile_wave = fits.getdata(pinhole_model, ext=0)/1e3
+        pinhole_rad = fits.getdata(pinhole_model, ext=1)/self.pix_scale
+        pinhole_ee = fits.getdata(ee_model, ext=2)
+
+        #focus for the pinhole is usually EE/spaxel, so pre-do EE profile calculation
+        ee_pinhole_out = interp1d(pinhole_rad, pinhole_ee)(0.5) #radius of 1 spatial pixel
+        self._ee_pinhole = interp1d(self._pinhole_profile_wave, ee_pinhole_out, fill_value='extrapolate')(self.inst_wavelength)
+    
 
     def _EE_lookup(self, seeing, binning=1, **kwargs):
         """
