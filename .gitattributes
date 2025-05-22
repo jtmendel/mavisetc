@@ -1,1 +1,2 @@
 MAVIS_stellar_library.fits filter=lfs diff=lfs merge=lfs -text
+LDLS_100um_Core_to_Focus_Etalon.csv filter=lfs diff=lfs merge=lfs -text
