@@ -96,10 +96,10 @@ class ImagingInstrument:
 
 
     def calc_sn(self, source, sky=None, lgs=None, dit=3600., 
-                ndit=None, sn=None, seeing=1., binning=1, band='johnson_v'):
+                ndit=None, sn=None, seeing=1., binning=1, band=['johnson_v']):
     
         #generate source spectrum
-        source_wave, source_phot = source()
+        source_wave, source_phot = source(wavelength=self.inst_wavelength, resolution=1000*np.ones(len(self.inst_wavelength)))
         
         #resample onto outputpixel grid
         source_resampled = np.interp(self.inst_wavelength, source_wave, source_phot)
@@ -172,7 +172,7 @@ class ImagingInstrument:
 
 
     def get_mag_limit(self, sn=None, sky=None, lgs=None, dit=3600., 
-                      ndit=None, seeing=1., binning=1, band='johnson_v',
+                      ndit=None, seeing=1., binning=1, band=['johnson_v'],
                       norm='point'):
 
         #if a sky object is also supplied, convolve it to match the instrument properties
@@ -246,15 +246,19 @@ class ImagingInstrument:
 
         return store_pivot, store_limit
 
+
     def observe(self, source, sky=None, lgs=None, dit=3600.,
-                ndit=1, seeing=1., binning=1, band='johnson_v', 
+                ndit=1, seeing=1., binning=1, band=['johnson_v'], 
                 combine='mean'):
         """
         Generate a simulated count measurement and corresponding noise given dit and ndit.
         """
 
+        ##generate source spectrum
+        #source_wave, source_phot = source()
         #generate source spectrum
-        source_wave, source_phot = source()
+        source_wave, source_phot = source(wavelength=self.inst_wavelength, 
+                                          resolution=1000*np.ones(len(self.inst_wavelength)))
 
         #resample onto outputpixel grid
         source_resampled = np.interp(self.inst_wavelength, source_wave, source_phot)
@@ -267,18 +271,21 @@ class ImagingInstrument:
                 #source resampled has units of ph/s/micron at the instrument focal plane
                 #need to do some conversion to get this into the frame of the spectrograph
                 #output is phot/pixel at the detector
+                bin_area = 1.*1. #fixed
                 source_obs = np.copy(source_resampled)*self.total_throughput*self.step*dit*self._ee_pinhole/\
-                                  self.telescope_throughput 
+                                  self.telescope_throughput
             elif source.template_norm == 'extended':
                 #source_resampled has units of ph/s/m^2/micron at the instrument focal plane 
                 #need to do some conversion to get this into the frame of the spectrograph
                 #output is phot/pixel at the detector.
-                source_obs = np.copy(source_resampled)*self.total_throughput*self.step*dit*\
+                bin_area = binning**2
+                source_obs = np.copy(source_resampled)*self.total_throughput*self.step*dit*bin_area*\
                                   self.pix_scale**2 / (plate_scale*1000)**2 / self.telescope_throughput #spatial->detector mapping?
 
             ##set filter
             store_obs = []
             store_perf = []
+            store_pivot = []
             for iband in band:
                 self._set_filter(iband)
     
@@ -286,8 +293,8 @@ class ImagingInstrument:
                 self.source_obs = self._patch_nan(source_obs)*self.trans_norm
     
                 #total noise calculation #per dit
-                self.dark_noise = self.obs_area*self.detector.dark
-                self.read_noise = self.obs_area*self.detector.rn**2
+                self.dark_noise = bin_area*self.detector.dark
+                self.read_noise = bin_area*self.detector.rn**2
                 self.obj_noise = np.nansum(self.source_obs)
                 self.noise = self.obj_noise + self.read_noise + self.dark_noise #per dit
     
@@ -297,8 +304,9 @@ class ImagingInstrument:
                 phot_out = np.mean(phot_all)
                 store_obs.append(phot_out)
                 store_perf.append(self.obj_noise)
-    
-            return store_obs, store_perf #check that these are reasonable magnitudes?
+                store_pivot.append(self.pivot/1e4)
+
+            return store_pivot, store_obs, store_perf #check that these are reasonable magnitudes?
    
         else:
             #if a sky object is also supplied, convolve it to match the instrument properties
@@ -343,6 +351,7 @@ class ImagingInstrument:
             ##set filter
             store_obs = []
             store_perf = []
+            store_pivot = []
             for iband in band:
                 self._set_filter(iband)
     
@@ -366,8 +375,9 @@ class ImagingInstrument:
                 phot_out = np.mean(phot_all)
                 store_obs.append(-2.5*np.log10(phot_out * self.pivot * 6.626196e-27 / 100**2 / np.nansum(self.cfact*self.trans_norm) / 1e4)-48.6) #in photons
                 store_perf.append(-2.5*np.log10(self.obj_noise * self.pivot * 6.626196e-27 / 100**2 / np.nansum(self.cfact*self.trans_norm) / 1e4)-48.6) #in photons
+                store_pivot.append(self.pivot/1e4)
     
-            return store_obs, store_perf #check that these are reasonable magnitudes?
+            return store_pivot, store_obs, store_perf #check that these are reasonable magnitudes?
 
 
 class MAVIS_Imager(ImagingInstrument):
