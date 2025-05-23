@@ -36,10 +36,11 @@ class lamp_source():
                               'Etalon': 'LDLS_100um_Core_to_Focus_Etalon.csv',
                               'Flat_QTH': 'Thorlabs_SLS201L_QTH_to_Focus.csv',
                               'Flat_QTH_alt': 'Thorlabs_OSL2IR_QTH_to_Focus.csv',
-                              'Flat_LDLS': 'LDLS_100um_Core_to_Focus.csv'
-                              'Pinhole_QTH': 'Thorlabs_SLS201L_QTH_Fibre_to_Focus_With_Spectrograph_Grid_Pinholes.csv'
-                              'Pinhole_QTH_alt': 'Thorlabs_OSL2IR_QTH_Fibre_to_Focus_With_Spectrograph_Grid_Pinholes.csv'
-                              'Pinhole_LDLS': 'LDLS_100um_Core_Fibre_to_Focus_With_Spectrograph_Grid_Pinholes.csv'
+                              'Flat_LDLS': 'LDLS_100um_Core_to_Focus.csv',
+                              'Pinhole_QTH': 'Thorlabs_SLS201L_QTH_Fibre_to_Focus_With_Spectrograph_Grid_Pinholes.csv',
+                              'Pinhole_QTH_alt': 'Thorlabs_OSL2IR_QTH_Fibre_to_Focus_With_Spectrograph_Grid_Pinholes.csv',
+                              'Pinhole_LDLS': 'LDLS_100um_Core_Fibre_to_Focus_With_Spectrograph_Grid_Pinholes.csv',
+                              'ACM': 'ACM_Pinhole_MGG_Lamps.csv'
                              }
 
         self.lamp_scale = {'Ne': 2,
@@ -49,10 +50,11 @@ class lamp_source():
                            'Etalon': 1,
                            'Flat_QTH': 1,
                            'Flat_QTH_alt': 1,
-                           'Flat_LDLS': 1
+                           'Flat_LDLS': 1,
                            'Pinhole_QTH': 1,
                            'Pinhole_QTH_alt': 1,
-                           'Pinhole_LDLS': 1
+                           'Pinhole_LDLS': 1,
+                           'ACM': 1,
                            }
 
         self.template_dist = {'Ne': 'extended',
@@ -62,10 +64,11 @@ class lamp_source():
                               'Etalon': 'extended',
                               'Flat_QTH': 'extended',
                               'Flat_QTH_alt': 'extended',
-                              'Flat_LDLS': 'extended'
-                              'Pinhole_QTH': 'pinhole'
-                              'Pinhole_QTH_alt': 'pinhole'
-                              'Pinhole_LDLS': 'pinhole'
+                              'Flat_LDLS': 'extended',
+                              'Pinhole_QTH': 'pinhole',
+                              'Pinhole_QTH_alt': 'pinhole',
+                              'Pinhole_LDLS': 'pinhole',
+                              'ACM': 'pinhole'
                              }
 
 
@@ -97,10 +100,10 @@ class lamp_source():
         
         #for pinholes, read the integrated flux
         if self.template_norm == 'pinhole':
-            read_col = 2
+            read_col = 1
             flux_scale = 1e7
         else:
-            read_col = 1
+            read_col = 2
             flux_scale = 1e9
         with open(os.path.join(self.bfile_dir, self.template_dict[template]),'r') as ffile:
             for line in ffile:

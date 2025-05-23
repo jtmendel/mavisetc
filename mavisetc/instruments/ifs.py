@@ -90,8 +90,7 @@ class IFSInstrument:
 
 
     def calc_sn(self, source, sky=None, lgs=None, dit=3600., 
-                ndit=None, sn=None, seeing=1., binning=1, ref_wl=0.7, 
-                strehl=None):
+                ndit=None, sn=None, seeing=1., binning=1, ref_wl=0.7):
         """ 
         Estimates the SN given dit and ndit, or ndit given sn and dit.
         """
@@ -116,7 +115,7 @@ class IFSInstrument:
         self.sky_trans = np.copy(sky_trans_resampled)
         
         #estimate the ensquared energy and pixel area
-        self.obs_ee, self.obs_area = self._ee(seeing, binning=binning, strehl=strehl)
+        self.obs_ee, self.obs_area = self._ee(seeing, binning=binning)
         
         #total source spectrum
         if source.norm_sb:
@@ -154,8 +153,7 @@ class IFSInstrument:
 
 
     def get_mag_limit(self, sn=5, sky=None, lgs=None, dit=3600., ndit=1, 
-                        seeing=1., binning=1, ref_wl=0.7, 
-                        strehl=None, norm='point'):
+                        seeing=1., binning=1, ref_wl=0.7, norm='point'):
         """
         Estimate magnitude limits given observing parameters.
         """
@@ -177,7 +175,7 @@ class IFSInstrument:
         self.sky_trans = np.copy(sky_trans_resampled)
        
         #estimate the ensquared energy and pixel area
-        self.obs_ee, self.obs_area = self._ee(seeing, binning=binning, strehl=strehl)
+        self.obs_ee, self.obs_area = self._ee(seeing, binning=binning)
         
         #cfact converts back and forth between counts and physical units
         if norm == 'point':
@@ -206,7 +204,7 @@ class IFSInstrument:
 
     def observe(self, source, sky=None, lgs=None, dit=3600., 
                 ndit=1, seeing=1., binning=1, ref_wl=0.7, 
-                strehl=None, combine='mean'):
+                combine='mean'):
         """
         Generate a simulated spectrum and corresponding noise given dit and ndit.
         """
@@ -261,7 +259,7 @@ class IFSInstrument:
             self.sky_trans = np.copy(sky_trans_resampled)
             
             #estimate the ensquared energy and pixel area
-            self.obs_ee, self.obs_area = self._ee(seeing, binning=binning, strehl=strehl)
+            self.obs_ee, self.obs_area = self._ee(seeing, binning=binning)
             
             #total source spectrum
             if source.norm_sb:
@@ -308,7 +306,7 @@ class MAVIS_IFS(IFSInstrument):
 
     def __init__(self, mode=None, pix_scale=0.025, jitter=5, live_fraction=0.95, 
                  detector=None, telescope=None, inst_wavelength=None, turbulence_cat="50%-plus-spec",
-                 throughput_model="2025-03-06", aom_model="2025-03-14", throughput="requirement"):
+                 throughput_model="2025-03-06", aom_model="2025-03-14", performance="requirement"):
         
         #check for reasonable jitter values
         if jitter not in [5,10,20,30,40]:
@@ -409,7 +407,7 @@ class MAVIS_IFS(IFSInstrument):
 
         #compute the combined throughput
         scale = 0.55
-        if throughput == 'budget': scale = 1.
+        if performance == 'budget': scale = 1.
         self.total_throughput = self.telescope_throughput*\
                           self.qe*\
                           self.instrument_throughput*0.75*scale # in the throughput model 
@@ -459,10 +457,10 @@ class MAVIS_IFS(IFSInstrument):
         pinhole_model = os.path.join(bfile_dir, 'mavis/{0}'.format('PSF_spec-{0}mas_2025-05-14.fits'.format(int(pix_scale*1e3))))
         self._pinhole_profile_wave = fits.getdata(pinhole_model, ext=0)/1e3
         pinhole_rad = fits.getdata(pinhole_model, ext=1)/self.pix_scale
-        pinhole_ee = fits.getdata(ee_model, ext=2)
+        pinhole_ee = fits.getdata(pinhole_model, ext=2)
 
         #focus for the pinhole is usually EE/spaxel, so pre-do EE profile calculation
-        ee_pinhole_out = interp1d(pinhole_rad, pinhole_ee)(0.5) #radius of 1 spatial pixel
+        ee_pinhole_out = interp1d(pinhole_rad, pinhole_ee, axis=0)(0.5) #radius of 1 spatial pixel
         self._ee_pinhole = interp1d(self._pinhole_profile_wave, ee_pinhole_out, fill_value='extrapolate')(self.inst_wavelength)
     
 

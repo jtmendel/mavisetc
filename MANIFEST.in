@@ -10,6 +10,7 @@ include mavisetc/data/mavis/PSF_PC50_spec-25mas_2025-05-14.fits
 include mavisetc/data/mavis/PSF_PC50_spec-50mas_2025-05-14.fits
 include mavisetc/data/mavis/PSF_spec-25mas_2025-05-14.fits
 include mavisetc/data/mavis/PSF_spec-50mas_2025-05-14.fits
+include mavisetc/data/mavis/PSF_img_2025-05-14.fits
 include mavisetc/data/mavis/PSF_TLRatmo_2024-08-28.fits
 include mavisetc/data/mavis/MAVIS_throughput_spec_2024-05-14.csv
 include mavisetc/data/mavis/MAVIS_throughput_spec_2025-03-06.csv
@@ -32,8 +33,6 @@ include mavisetc/data/COSMOS_QE.csv
 include mavisetc/data/UT4_M1_reflect.csv
 include mavisetc/data/UT4_M2_reflect.csv
 include mavisetc/data/UT4_M3_reflect.csv
-include mavisetc/data/etalon/EQ99X_flux_100um_fibre.csv
-include mavisetc/data/etalon/SLS_Reflectivity_Etatlon_80um.csv
 include mavisetc/data/kc_templates/elliptical_template.fits
 include mavisetc/data/kc_templates/s0_template.fits
 include mavisetc/data/kc_templates/sa_template.fits

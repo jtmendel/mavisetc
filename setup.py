@@ -123,6 +123,7 @@ if __name__ == "__main__":
                               "mavisetc/data/mavis/PSF_PC50_spec-50mas_2025-05-14.fits",
                               "mavisetc/data/mavis/PSF_spec-25mas_2025-05-14.fits",
                               "mavisetc/data/mavis/PSF_spec-50mas_2025-05-14.fits",
+                              "mavisetc/data/mavis/PSF_img_2025-05-14.fits",
                               "mavisetc/data/mavis/PSF_TLRatmo_2024-08-28.fits",
                               "mavisetc/data/mavis/MAVIS_throughput_spec_2024-05-14.csv",
                               "mavisetc/data/mavis/MAVIS_throughput_spec_2025-03-06.csv",

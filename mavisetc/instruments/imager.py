@@ -96,7 +96,7 @@ class ImagingInstrument:
 
 
     def calc_sn(self, source, sky=None, lgs=None, dit=3600., 
-                ndit=None, sn=None, seeing=1., binning=1, band='johnson_v', strehl=None):
+                ndit=None, sn=None, seeing=1., binning=1, band='johnson_v'):
     
         #generate source spectrum
         source_wave, source_phot = source()
@@ -122,7 +122,7 @@ class ImagingInstrument:
         self.sky_trans = np.copy(sky_trans_resampled)
         
         #estimate the ensquared energy and pixel area
-        self.obs_ee, self.obs_area = self._ee(seeing, binning=binning, strehl=strehl)
+        self.obs_ee, self.obs_area = self._ee(seeing, binning=binning)
        
         #total source spectrum
         if source.norm_sb:
@@ -172,7 +172,7 @@ class ImagingInstrument:
 
 
     def get_mag_limit(self, sn=None, sky=None, lgs=None, dit=3600., 
-                      ndit=None, seeing=1., binning=1, band='johnson_v', strehl=None,
+                      ndit=None, seeing=1., binning=1, band='johnson_v',
                       norm='point'):
 
         #if a sky object is also supplied, convolve it to match the instrument properties
@@ -198,7 +198,7 @@ class ImagingInstrument:
         self.sky_trans = np.copy(sky_trans_resampled)
         
         #estimate the ensquared energy and pixel area
-        self.obs_ee, self.obs_area = self._ee(seeing, binning=binning, strehl=strehl)
+        self.obs_ee, self.obs_area = self._ee(seeing, binning=binning)
 
         #total source spectrum
         if norm == 'point':
@@ -246,6 +246,128 @@ class ImagingInstrument:
 
         return store_pivot, store_limit
 
+    def observe(self, source, sky=None, lgs=None, dit=3600.,
+                ndit=1, seeing=1., binning=1, band='johnson_v', 
+                combine='mean'):
+        """
+        Generate a simulated count measurement and corresponding noise given dit and ndit.
+        """
+
+        #generate source spectrum
+        source_wave, source_phot = source()
+
+        #resample onto outputpixel grid
+        source_resampled = np.interp(self.inst_wavelength, source_wave, source_phot)
+
+        if source.type == 'lamp': #separate handling for lamp-type sources
+            #plate scale in "/mm at the PFR output
+            plate_scale = 0.737
+           
+            if source.template_norm == 'pinhole':
+                #source resampled has units of ph/s/micron at the instrument focal plane
+                #need to do some conversion to get this into the frame of the spectrograph
+                #output is phot/pixel at the detector
+                source_obs = np.copy(source_resampled)*self.total_throughput*self.step*dit*self._ee_pinhole/\
+                                  self.telescope_throughput 
+            elif source.template_norm == 'extended':
+                #source_resampled has units of ph/s/m^2/micron at the instrument focal plane 
+                #need to do some conversion to get this into the frame of the spectrograph
+                #output is phot/pixel at the detector.
+                source_obs = np.copy(source_resampled)*self.total_throughput*self.step*dit*\
+                                  self.pix_scale**2 / (plate_scale*1000)**2 / self.telescope_throughput #spatial->detector mapping?
+
+            ##set filter
+            store_obs = []
+            store_perf = []
+            for iband in band:
+                self._set_filter(iband)
+    
+                #integrate transmission for total counts
+                self.source_obs = self._patch_nan(source_obs)*self.trans_norm
+    
+                #total noise calculation #per dit
+                self.dark_noise = self.obs_area*self.detector.dark
+                self.read_noise = self.obs_area*self.detector.rn**2
+                self.obj_noise = np.nansum(self.source_obs)
+                self.noise = self.obj_noise + self.read_noise + self.dark_noise #per dit
+    
+                #generate random realisations of these data
+                rng = np.random.default_rng()
+                phot_all = self.obj_noise + rng.normal(loc=0, scale=np.sqrt(self.noise), size=ndit)
+                phot_out = np.mean(phot_all)
+                store_obs.append(phot_out)
+                store_perf.append(self.obj_noise)
+    
+            return store_obs, store_perf #check that these are reasonable magnitudes?
+   
+        else:
+            #if a sky object is also supplied, convolve it to match the instrument properties
+            if sky is not None:
+                sky_emm_resampled, sky_trans_resampled = self.make_sky_spectrum(sky, source, source_wave)
+            else:
+                sky_trans_resampled = np.ones(len(self.inst_wavelength))
+                sky_emm_resampled = np.zeros(len(self.inst_wavelength))
+    
+            #if an LGS object is supplied generate the appropriate spectrum to be included
+            if lgs is not None:
+                _, lgs_resampled = lgs(wavelength=self.inst_wavelength,
+                                       resolution=np.ones_like(self.inst_wavelength)*np.diff(self.inst_wavelength)[0])
+            else:
+                lgs_resampled = np.zeros(len(self.inst_wavelength))
+    
+            #store transmission spectrum
+            self.sky_trans = np.copy(sky_trans_resampled)
+    
+            #estimate the ensquared energy and pixel area
+            self.obs_ee, self.obs_area = self._ee(seeing, binning=binning)
+    
+            #total source spectrum
+            if source.norm_sb:
+                self.cfact = sky_trans_resampled*dit*self.total_throughput*self.step*\
+                             self.telescope.area*self.pix_scale**2 * self.obs_area
+            else:
+                #get ensquared energy and area in pixels
+                self.cfact = sky_trans_resampled*dit*self.total_throughput*\
+                             self.step*self.telescope.area*self.obs_ee
+    
+            source_obs = np.copy(source_resampled)*self.cfact #photons
+    
+            #sky is always done correctly-ish.
+            sky_obs = np.copy(sky_emm_resampled)*dit*self.total_throughput*self.step*\
+                      self.telescope.area*self.pix_scale**2 * self.obs_area #total area, photons#/um
+    
+            #lgs is handled same way as sky
+            lgs_obs = np.copy(lgs_resampled)*dit*self.total_throughput*self.step*\
+                      self.telescope.area*self.pix_scale**2 * self.obs_area #total area, photons#/um
+    
+            ##set filter
+            store_obs = []
+            store_perf = []
+            for iband in band:
+                self._set_filter(iband)
+    
+                #integrate transmission for total counts
+                self.source_obs = self._patch_nan(source_obs)*self.trans_norm
+                self.sky_obs = self._patch_nan(sky_obs)*self.trans_norm
+                self.lgs_obs = self._patch_nan(lgs_obs)*self.trans_norm
+    
+    
+                #total noise calculation #per dit
+                self.dark_noise = self.obs_area*self.detector.dark
+                self.read_noise = self.obs_area*self.detector.rn**2
+                self.sky_noise = np.nansum(self.sky_obs)
+                self.obj_noise = np.nansum(self.source_obs)
+                self.lgs_noise = np.nansum(self.lgs_obs)
+                self.noise = self.obj_noise + self.sky_noise + self.lgs_noise + self.read_noise + self.dark_noise #per dit
+    
+                #generate random realisations of these data
+                rng = np.random.default_rng()
+                phot_all = self.obj_noise + rng.normal(loc=0, scale=np.sqrt(self.noise), size=ndit)
+                phot_out = np.mean(phot_all)
+                store_obs.append(-2.5*np.log10(phot_out * self.pivot * 6.626196e-27 / 100**2 / np.nansum(self.cfact*self.trans_norm) / 1e4)-48.6) #in photons
+                store_perf.append(-2.5*np.log10(self.obj_noise * self.pivot * 6.626196e-27 / 100**2 / np.nansum(self.cfact*self.trans_norm) / 1e4)-48.6) #in photons
+    
+            return store_obs, store_perf #check that these are reasonable magnitudes?
 
 
 class MAVIS_Imager(ImagingInstrument):
@@ -258,7 +380,7 @@ class MAVIS_Imager(ImagingInstrument):
     """
 
     def __init__(self, pix_scale=0.007367, detector=None, telescope=None, notch_exp=1,
-                 turbulence_cat='50%', aom_model='2025-03-14', throughput="requirement"):
+                 turbulence_cat='50%', aom_model='2025-03-14', performance="requirement"):
 
         #initialize the model base
         ImagingInstrument.__init__(self)
@@ -345,6 +467,19 @@ class MAVIS_Imager(ImagingInstrument):
 
         #assign EE generator
         self._ee = self._EE_lookup
+
+
+        # For source time "pinhole", which excludes AO PSF
+        #always load in the diffraction-limited pinhole EE as well
+        pinhole_model = os.path.join(bfile_dir, 'mavis/{0}'.format('PSF_img_2025-05-14.fits'))
+        self._pinhole_profile_wave = fits.getdata(pinhole_model, ext=0)/1e3
+        pinhole_rad = fits.getdata(pinhole_model, ext=1)/self.pix_scale
+        pinhole_ee = fits.getdata(pinhole_model, ext=2)
+
+        #focus for the pinhole is usually EE/spaxel, so pre-do EE profile calculation
+        ee_pinhole_out = interp1d(pinhole_rad, pinhole_ee, axis=0)(0.5) #radius of 1 spatial pixel
+        self._ee_pinhole = interp1d(self._pinhole_profile_wave, ee_pinhole_out, fill_value='extrapolate')(self.inst_wavelength)
+
 
 
     def _EE_lookup(self, seeing, binning=1, **kwargs):
