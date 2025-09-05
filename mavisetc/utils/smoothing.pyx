@@ -5,7 +5,7 @@ from libc.math cimport pow, sqrt, exp, M_PI, floor
 
 DTYPE = float
 ctypedef np.float_t DTYPE_t
-ctypedef np.int_t DTYPE_i
+ctypedef np.intp_t DTYPE_i
 
 __all__ = ["smooth"]
 
