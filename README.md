@@ -1,7 +1,7 @@
 # MAVISETC
 This provides exposure time estimates and data simulation capabilities for MAVIS, a new optical imager and IFS being developed for the ESO VLT.
 
-Current version: v0.9.0a0
+Current version: v1.0.0a0
 
 # Installation
 If you have git installed, then you can obtain the software like so:
