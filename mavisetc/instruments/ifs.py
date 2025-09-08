@@ -10,7 +10,8 @@ import glob
 import sys
 import warnings
 
-from ..utils.smoothing import smooth
+#from ..utils.smoothing import smooth
+from ..utils import smooth
 
 #import some bits for the instruments
 from ..detectors import CCD290
@@ -54,8 +55,8 @@ class IFSInstrument:
                                  left=self.res_pix[0], right=self.res_pix[-1])
         offset_res_sky = np.sqrt(np.clip((match_res_sky*self.step/sky.step)**2 - 
                                          sky.res_pix**2, 1e-10, None))
-        conv_emm = smooth(sky_emm, offset_res_sky)
-        conv_trans = smooth(sky_trans, offset_res_sky)
+        conv_emm = smooth(sky_wave, sky_emm, offset_res_sky*sky.step)
+        conv_trans = smooth(sky_wave, sky_trans, offset_res_sky*sky.step)
                     
         #resample onto output grid
         sky_emm_resampled = np.interp(self.inst_wavelength, sky_wave, conv_emm)
@@ -74,9 +75,9 @@ class IFSInstrument:
                                      left=self.res_pix[0], right=self.res_pix[-1]) #instrument resolution on source wavelength grid
         offset_res_source = np.sqrt(np.clip((match_res_source*self.step/source.red_step)**2 - 
                                             source.res_pix**2, 1e-30,None))
-        conv_source = smooth(source_phot, offset_res_source)
+        conv_source = smooth(source_wave, source_phot, offset_res_source*source.red_step)
        
-        #resample being more carful to conserve flux here, esp. for undersampled features.
+        #resample being more careful to conserve flux here, esp. for undersampled features.
         #assumes uniform distribution of flux across pixel.
         accum_source = np.cumsum(np.r_[conv_source[:1], conv_source])*source.red_step #photons/s/m^2
         source_bin_waves = np.r_[source_wave-source.red_step/2., source_wave[-1:]+source.red_step/2.]
@@ -306,7 +307,7 @@ class MAVIS_IFS(IFSInstrument):
 
     def __init__(self, mode=None, pix_scale=0.025, jitter=5, live_fraction=0.95, 
                  detector=None, telescope=None, inst_wavelength=None, turbulence_cat="50%-plus-spec",
-                 throughput_model="2025-03-06", aom_model="2025-03-14", performance="requirement"):
+                 throughput_model="2025-07-01", aom_model="2025-03-14", performance="requirement"):
         
         #check for reasonable jitter values
         if jitter not in [5,10,20,30,40]:

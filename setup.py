@@ -58,12 +58,6 @@ class CleanCommand(Command):
                 pass
 
 
-try:
-    from Cython.Build import cythonize
-except ImportError:
-    raise ImportError("MAVISETC requires cython to install")
-
-
 class build_ext(_build_ext):
     def build_extension(self, ext):
         _build_ext.build_extension(self, ext)
@@ -75,13 +69,8 @@ if __name__ == "__main__":
                     numpy.get_include(),
                    ]
 
-    cmodules = []
-    cmodules += [Extension("mavisetc.utils.smoothing", 
-                           ["mavisetc/utils/smoothing.pyx"], 
-                           include_dirs=include_dirs)]
-    ext_modules = cythonize(cmodules)
+    ext_modules = []
 
-    #scripts = ['scripts/'+file for file in os.listdir('scripts/')]  
     scripts = []  
 
     cmdclass = {'clean': CleanCommand,
@@ -266,18 +255,22 @@ if __name__ == "__main__":
                               "mavisetc/data/lasd_templates/KISSR242.ascii",
                               "mavisetc/data/lasd_templates/Tol.ascii",
                               "mavisetc/data/lasd_templates/lasd_measurements.cat",
-                              "mavisetc/data/lamp_templates/Cd_to_Focus.csv",
-                              "mavisetc/data/lamp_templates/Zn_to_Focus.csv",
                               "mavisetc/data/lamp_templates/Hector_Ne_to_Focus.csv",
                               "mavisetc/data/lamp_templates/Hector_Xe_to_Focus.csv",
-                              "mavisetc/data/lamp_templates/LDLS_100um_Core_to_Focus_Etalon.csv",
-                              "mavisetc/data/lamp_templates/LDLS_100um_Core_to_Focus.csv",
+                              "mavisetc/data/lamp_templates/Cd_to_Focus.csv",
+                              "mavisetc/data/lamp_templates/Zn_to_Focus.csv",
+                              "mavisetc/data/lamp_templates/LDLS_600um_Core_to_Focus_Etalon.csv",
                               "mavisetc/data/lamp_templates/Thorlabs_SLS201L_QTH_to_Focus.csv",
                               "mavisetc/data/lamp_templates/Thorlabs_OSL2IR_QTH_to_Focus.csv",
-                              "mavisetc/data/lamp_templates/LDLS_100um_Core_Fibre_to_Focus_With_Spectrograph_Grid_Pinholes.csv",
-                              "mavisetc/data/lamp_templates/Thorlabs_SLS201L_QTH_Fibre_to_Focus_With_Spectrograph_Grid_Pinholes.csv",
-                              "mavisetc/data/lamp_templates/Thorlabs_OSL2IR_QTH_Fibre_to_Focus_With_Spectrograph_Grid_Pinholes.csv",
+                              "mavisetc/data/lamp_templates/LDLS_600um_Core_to_Focus.csv",
+                              "mavisetc/data/lamp_templates/Thorlabs_SLS201L_QTH_Spectrograph_Grid_Pinholes.csv",
+                              "mavisetc/data/lamp_templates/Thorlabs_OSL2IR_QTH_Spectrograph_Grid_Pinholes.csv",
+                              "mavisetc/data/lamp_templates/LDLS_600um_Core_Spectrograph_Grid_Pinholes.csv",
+                              "mavisetc/data/lamp_templates/LDLS_600um_Core_Etalon_Spectrograph_Grid_Pinholes.csv",
+                              "mavisetc/data/lamp_templates/Thorlabs_SLS201L_QTH_Spectrograph_Ronchi.csv",
+                              "mavisetc/data/lamp_templates/LDLS_600um_Core_Spectrograph_Ronchi.csv",
                               "mavisetc/data/lamp_templates/ACM_Pinhole_MGG_Lamps.csv",
+                              "mavisetc/data/lamp_templates/NCPA_Pinhole_MGG_Lamps.csv",
                               "mavisetc/data/stellar_templates/MAVIS_stellar_library.fits",
                               "mavisetc/data/filters/cousins_i.dat",
                               "mavisetc/data/filters/cousins_r.dat",
@@ -292,6 +285,8 @@ if __name__ == "__main__":
                               "mavisetc/data/filters/mavis_u.dat",
                               "mavisetc/data/filters/mavis_g.dat",
                               "mavisetc/data/filters/mavis_r.dat",
+                              "mavisetc/data/filters/mavis_i.dat",
+                              "mavisetc/data/filters/mavis_z.dat",
                               "mavisetc/data/filters/lsst_g.dat",
                               "mavisetc/data/filters/lsst_i.dat",
                               "mavisetc/data/filters/lsst_r.dat",

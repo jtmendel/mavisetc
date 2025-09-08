@@ -7,9 +7,9 @@ import numpy as np
 import os
 import glob
 import sys
-#import fsps
 
-from ..utils.smoothing import smooth
+#from ..utils.smoothing import smooth
+from ..utils import smooth
 from ..filters import get_filter
 
 #import some bits for the instruments
@@ -66,6 +66,8 @@ class ImagingInstrument:
         #stupid, but re-normalize to peak of 1 (since all other throughput terms 
         #are included in the instrument throughput
         self.trans_norm = np.copy(ntrans)/ntrans.max()
+        if filt not in ['mavis_u', 'mavis_g', 'mavis_r', 'mavis_i', 'mavis_z']:
+            self.trans_norm *= 0.98**2
         self.transmission = ntrans
         self.pivot = fobj.lambda_eff
         return 
@@ -84,8 +86,8 @@ class ImagingInstrument:
                                  left=source.res_pix[0], right=source.res_pix[-1])
         offset_res_sky = np.sqrt(np.clip((match_res_sky*source.step/sky.step)**2 - 
                                          sky.res_pix**2, 1e-10, None))
-        conv_emm = smooth(sky_emm, offset_res_sky)
-        conv_trans = smooth(sky_trans, offset_res_sky)
+        conv_emm = smooth(sky_wave, sky_emm, offset_res_sky*sky.step)
+        conv_trans = smooth(sky_wave, sky_trans, offset_res_sky*sky.step)
                     
         #resample onto output grid
         sky_emm_resampled = np.interp(self.inst_wavelength, sky_wave, conv_emm)
@@ -122,7 +124,7 @@ class ImagingInstrument:
         self.sky_trans = np.copy(sky_trans_resampled)
         
         #estimate the ensquared energy and pixel area
-        self.obs_ee, self.obs_area = self._ee(seeing, binning=binning)
+        self.obs_ee, self.obs_area = self._ee(binning=binning)
        
         #total source spectrum
         if source.norm_sb:
@@ -198,7 +200,7 @@ class ImagingInstrument:
         self.sky_trans = np.copy(sky_trans_resampled)
         
         #estimate the ensquared energy and pixel area
-        self.obs_ee, self.obs_area = self._ee(seeing, binning=binning)
+        self.obs_ee, self.obs_area = self._ee(binning=binning)
 
         #total source spectrum
         if norm == 'point':
@@ -282,6 +284,8 @@ class ImagingInstrument:
                 source_obs = np.copy(source_resampled)*self.total_throughput*self.step*dit*bin_area*\
                                   self.pix_scale**2 / (plate_scale*1000)**2 / self.telescope_throughput #spatial->detector mapping?
 
+            self.total_source_obs = np.copy(source_obs)
+            
             ##set filter
             store_obs = []
             store_perf = []
@@ -327,7 +331,7 @@ class ImagingInstrument:
             self.sky_trans = np.copy(sky_trans_resampled)
     
             #estimate the ensquared energy and pixel area
-            self.obs_ee, self.obs_area = self._ee(seeing, binning=binning)
+            self.obs_ee, self.obs_area = self._ee(binning=binning)
     
             #total source spectrum
             if source.norm_sb:
@@ -339,7 +343,8 @@ class ImagingInstrument:
                              self.step*self.telescope.area*self.obs_ee
     
             source_obs = np.copy(source_resampled)*self.cfact #photons
-    
+            self.total_source_obs = np.copy(source_obs)
+
             #sky is always done correctly-ish.
             sky_obs = np.copy(sky_emm_resampled)*dit*self.total_throughput*self.step*\
                       self.telescope.area*self.pix_scale**2 * self.obs_area #total area, photons#/um
@@ -375,10 +380,59 @@ class ImagingInstrument:
                 phot_out = np.mean(phot_all)
                 store_obs.append(-2.5*np.log10(phot_out * self.pivot * 6.626196e-27 / 100**2 / np.nansum(self.cfact*self.trans_norm) / 1e4)-48.6) #in photons
                 store_perf.append(-2.5*np.log10(self.obj_noise * self.pivot * 6.626196e-27 / 100**2 / np.nansum(self.cfact*self.trans_norm) / 1e4)-48.6) #in photons
-                store_pivot.append(self.pivot/1e4)
+
+
+                #compute an effetive pivot wavelength given the throughput
+                store_pivot.append(np.sqrt(np.trapz(self.transmission*self.trans_norm*self.inst_wavelength, self.inst_wavelength)/\
+                                   np.trapz(self.transmission*self.trans_norm/self.inst_wavelength, self.inst_wavelength)))
     
             return store_pivot, store_obs, store_perf #check that these are reasonable magnitudes?
 
+
+    def get_zeropoints(self, sky=None, binning=1, dit=1, band=['johnson_v'],
+                          norm='point'):
+    
+            #if a sky object is also supplied, convolve it to match the instrument properties
+            if sky is not None:
+                sky_wave, sky_emm, sky_trans = sky()
+    
+                #resample onto output grid
+                sky_emm_resampled = np.interp(self.inst_wavelength, sky_wave, sky_emm)
+                sky_trans_resampled = np.clip(np.interp(self.inst_wavelength,
+                                                             sky_wave, sky_trans),0,1)
+            else:
+                sky_trans_resampled = np.ones(len(self.inst_wavelength))
+                sky_emm_resampled = np.zeros(len(self.inst_wavelength))
+    
+            #store transmission spectrum
+            self.sky_trans = np.copy(sky_trans_resampled)
+    
+            #estimate the ensquared energy and pixel area
+            self.obs_ee, self.obs_area = self._ee(binning=binning)
+    
+            #total source spectrum
+            if norm == 'point':
+                #get ensquared energy and area in pixels
+                self.cfact = sky_trans_resampled*dit*self.total_throughput*\
+                             self.step*self.telescope.area*self.obs_ee
+            else:
+                self.cfact = sky_trans_resampled*dit*self.total_throughput*self.step*\
+                             self.telescope.area*self.pix_scale**2 * self.obs_area
+    
+            ##set filter
+            store_zps = []
+            store_pivot = []
+            for iband in band:
+                self._set_filter(iband)
+    
+                #print(source_obs, self.pivot)
+                store_zps.append(-2.5*np.log10(1. * self.pivot * 6.626196e-27 / 100**2 / np.nansum(self.cfact*self.trans_norm) / 1e4)-48.6)
+
+
+                store_pivot.append(self.pivot/1e4)
+    
+            return store_pivot, store_zps
+    
 
 class MAVIS_Imager(ImagingInstrument):
     """
@@ -390,7 +444,8 @@ class MAVIS_Imager(ImagingInstrument):
     """
 
     def __init__(self, pix_scale=0.007367, detector=None, telescope=None, notch_exp=1,
-                 turbulence_cat='50%', aom_model='2025-03-14', performance="requirement"):
+                 turbulence_cat='50%', throughput_model='2025-07-01', aom_model='2025-03-14', 
+                 performance="requirement"):
 
         #initialize the model base
         ImagingInstrument.__init__(self)
@@ -421,11 +476,25 @@ class MAVIS_Imager(ImagingInstrument):
         #if the instrument throughput curves are already included, this should be set to 1
         self.telescope_throughput = np.interp(self.inst_wavelength, self.telescope.telescope_wave, self.telescope.telescope_eff)
 
-        #compute the combined throughput - including filter transmission
-        self.total_throughput = self.telescope_throughput * self.qe * 0.98**2 * 0.8
-
         #get path for bundled package files
         bfile_dir = os.path.join(os.path.dirname(sys.modules['mavisetc'].__file__), 'data')
+        
+        #get the combined throughput for the imager
+        tpt_file = 'MAVIS_throughput_img_{0}.csv'.format(throughput_model)
+        if not os.path.exists(os.path.join(bfile_dir, 'mavis', tpt_file)):
+            raise ValueError('Throughput model {0} not found'.format(tpt_file))
+
+        data = asc.read(os.path.join(bfile_dir, 'mavis', tpt_file), encoding='utf-8-sig')
+        twave = np.array(data['Wavelength'])/1e3
+        ttpt = np.array(data['tpt'])
+        self.instrument_throughput = interp1d(twave[ttpt > 0], ttpt[ttpt > 0], fill_value='extrapolate')(self.inst_wavelength)
+
+        ##compute the combined throughput - including filter transmission
+        #self.total_throughput = self.telescope_throughput * self.qe * 0.98**2 * 0.8
+        #compute the combined throughput !! DOES NOT INCLUDE THE FILTER !!
+        #extra 85% helps to rectify old and new throughputs
+        self.total_throughput = self.telescope_throughput * self.qe * self.instrument_throughput * 0.85
+
 
         #fold in AOM throughput
         #AOM throughput estimate
@@ -492,7 +561,7 @@ class MAVIS_Imager(ImagingInstrument):
 
 
 
-    def _EE_lookup(self, seeing, binning=1, **kwargs):
+    def _EE_lookup(self, binning=1, **kwargs):
         """
         A quick and dirty interpolation function to generate ensquared 
         energy within a given aperture using the pre-computed MAVIS PSF model..
