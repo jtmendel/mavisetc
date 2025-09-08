@@ -116,6 +116,8 @@ if __name__ == "__main__":
                               "mavisetc/data/mavis/PSF_TLRatmo_2024-08-28.fits",
                               "mavisetc/data/mavis/MAVIS_throughput_spec_2024-05-14.csv",
                               "mavisetc/data/mavis/MAVIS_throughput_spec_2025-03-06.csv",
+                              "mavisetc/data/mavis/MAVIS_throughput_spec_2025-07-01.csv",
+                              "mavisetc/data/mavis/MAVIS_throughput_img_2025-07-01.csv",
                               "mavisetc/data/mavis/mavis_AOM_throughput.csv",
                               "mavisetc/data/mavis/mavis_AOM_throughput_2024-09-27_img.csv",
                               "mavisetc/data/mavis/mavis_AOM_throughput_2024-09-27_spec.csv",
