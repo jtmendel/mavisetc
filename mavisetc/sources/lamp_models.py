@@ -165,6 +165,18 @@ class lamp_source():
             spec_out += self._make_line(lwave, lflux, wavelength, resolution)    
         return spec_out
 
+    def _resample_spectrum(self, wave_out):
+        """
+        Do a more careful job resampling the spectrum here.
+        """
+        step = np.diff(self.line_wave)[0] 
+        accum_source = np.cumsum(np.r_[self.line_flux[:1], self.line_flux])*step*1e3 #photons/s/m^2; 1e3 scaling from nm^-1 and wave in microns
+        source_bin_waves = np.r_[self.line_wave-step/2., self.line_wave[-1:]+step/2.]
+        out_bin_waves = np.r_[wave_out-self.red_step/2., wave_out[-1:]+self.red_step/2.]
+        interp_source = np.interp(out_bin_waves, source_bin_waves, accum_source)
+        source_resampled = np.diff(interp_source)/self.red_step
+        return source_resampled
+
 
     def __call__(self, wavelength=None, resolution=None):
                 
@@ -184,7 +196,8 @@ class lamp_source():
         if self.template in ['Ne', 'Xe', 'Cd', 'Zn']: #these are just line lists, need to generate spectrum
             sim_spec = self._make_spectrum(wavelength, resolution) #erg/s/cm^2/um
         else: #for the other lamps (etalon, QTH, LDLS), treat them as spectra
-            sim_spec = np.interp(wavelength, self.line_wave, self.line_flux) * 1e3 #erg/s/cm^2/um or erg/s/um
+            #sim_spec = np.interp(wavelength, self.line_wave, self.line_flux) * 1e3 #erg/s/cm^2/um or erg/s/um
+            sim_spec = self._resample_spectrum(wavelength) #erg/s/cm^2/um or erg/s/um
 
         #convert to useful units
         if self.template_norm == 'pinhole':
