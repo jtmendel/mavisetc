@@ -4,13 +4,14 @@ This provides exposure time estimates and data simulation capabilities for MAVIS
 Current version: v1.0.0a0
 
 # Installation
-If you have git installed, then you can obtain the software like so:
+In order to install all components of the ETC you will need both git and git-lfs installed. With those running you can install an editable version of the software like so:
 ```
 git clone https://github.com/jtmendel/mavisetc.git
 cd mavisetc
+git lfs checkout
 python -m pip install -e .
 ```
-This will compile the necessary routines and create a symlink to their location in your python directory (currently recommended since things are likely to change).  If you chose, you can also perform a standard installation, i.e:
+This will compile the necessary routines and create a symlink to their location in your python directory. The ```git lfs checkout``` call will fetch the bundled stellar library and etalon models (~530 mb total). If you don't plan to use them then this should not be needed (but note that one of the examples in the included notebook will not work!). If you chose, you can also perform standard (non-editable) installation, i.e:
 ```
 python -m pip install .
 ```
