@@ -33,14 +33,17 @@ class lamp_source():
                               'Xe': 'Hector_Xe_to_Focus.csv',
                               'Cd': 'Cd_to_Focus.csv',
                               'Zn': 'Zn_to_Focus.csv',
-                              'Etalon': 'LDLS_100um_Core_to_Focus_Etalon.csv',
+                              'Etalon': 'LDLS_600um_Core_to_Focus_Etalon.csv',
                               'Flat_QTH': 'Thorlabs_SLS201L_QTH_to_Focus.csv',
                               'Flat_QTH_alt': 'Thorlabs_OSL2IR_QTH_to_Focus.csv',
-                              'Flat_LDLS': 'LDLS_100um_Core_to_Focus.csv',
-                              'Pinhole_QTH': 'Thorlabs_SLS201L_QTH_Fibre_to_Focus_With_Spectrograph_Grid_Pinholes.csv',
-                              'Pinhole_QTH_alt': 'Thorlabs_OSL2IR_QTH_Fibre_to_Focus_With_Spectrograph_Grid_Pinholes.csv',
-                              'Pinhole_LDLS': 'LDLS_100um_Core_Fibre_to_Focus_With_Spectrograph_Grid_Pinholes.csv',
-                              'ACM': 'ACM_Pinhole_MGG_Lamps.csv'
+                              'Flat_LDLS': 'LDLS_600um_Core_to_Focus.csv',
+                              'Pinhole_QTH': 'Thorlabs_SLS201L_QTH_Spectrograph_Grid_Pinholes.csv',
+                              'Pinhole_QTH_alt': 'Thorlabs_OSL2IR_QTH_Spectrograph_Grid_Pinholes.csv',
+                              'Pinhole_LDLS': 'LDLS_600um_Core_Spectrograph_Grid_Pinholes.csv',
+                              'Ronchi_QTH': 'Thorlabs_SLS201L_QTH_Spectrograph_Ronchi.csv',
+                              'Ronchi_LDLS': 'LDLS_600um_Core_Spectrograph_Ronchi.csv',
+                              'ACM': 'ACM_Pinhole_MGG_Lamps.csv',
+                              'NCPA': 'NCPA_Pinhole_MGG_Lamps.csv'
                              }
 
         self.lamp_scale = {'Ne': 2,
@@ -54,7 +57,10 @@ class lamp_source():
                            'Pinhole_QTH': 1,
                            'Pinhole_QTH_alt': 1,
                            'Pinhole_LDLS': 1,
+                           'Ronchi_QTH': 1,
+                           'Ronchi_LDLS': 1,
                            'ACM': 1,
+                           'NCPA': 1
                            }
 
         self.template_dist = {'Ne': 'extended',
@@ -68,7 +74,10 @@ class lamp_source():
                               'Pinhole_QTH': 'pinhole',
                               'Pinhole_QTH_alt': 'pinhole',
                               'Pinhole_LDLS': 'pinhole',
-                              'ACM': 'pinhole'
+                              'Ronchi_QTH': 'extended',
+                              'Ronchi_LDLS': 'extended',
+                              'ACM': 'pinhole',
+                              'NCPA': 'pinhole'
                              }
 
 

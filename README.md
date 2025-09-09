@@ -8,16 +8,11 @@ If you have git installed, then you can obtain the software like so:
 ```
 git clone https://github.com/jtmendel/mavisetc.git
 cd mavisetc
-python setup.py develop
+python -m pip install -e .
 ```
 This will compile the necessary routines and create a symlink to their location in your python directory (currently recommended since things are likely to change).  If you chose, you can also perform a standard installation, i.e:
 ```
-python setup.py install
-```
-There are various options controlling *where* things are located, with perhaps the most germane being `--prefix=/path/to/installation` and `--install-scripts=/directory/in/your/path`.  Additional install options can be perused using:
-
-```
-python setup.py install --help
+python -m pip install .
 ```
 As well as Numpy and Scipy, you will need to have the following Python modules installed
 * [astropy](http://www.astropy.org/) - Python tools for astronomy.
