@@ -1,0 +1,33 @@
+[build-system]
+requires = [
+    "setuptools>=61",
+    "setuptools-scm>=8.0"  # automatically include files tracked by git
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mavisetc"
+description = "MAVIS Exposure Time Calculator"
+authors = [{name = "Trevor Mendel", email = "trevor.mendel@anu.edu.au"}]
+readme = "README.md"
+license = {file = "LICENSE"}
+dynamic = ["version"]
+requires-python = ">= 3.7"
+dependencies = [
+    "numpy>=2.0.0",
+    "skycalc_cli>=1.4",
+    "scipy",
+    "astropy"
+]
+
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python"
+]
+
+[project.urls]
+Repository = "https://github.com/jtmendel/mavisetc"
+
+[tool.setuptools.dynamic]
+version = {attr = "mavisetc.__version__"}
