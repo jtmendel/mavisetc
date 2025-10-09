@@ -444,7 +444,7 @@ class MAVIS_Imager(ImagingInstrument):
     """
 
     def __init__(self, pix_scale=0.007367, detector=None, telescope=None, notch_exp=1,
-                 turbulence_cat='50%', throughput_model='2025-07-01', aom_model='2025-03-14', 
+                 turbulence_cat='50%', throughput_model='2025-10-09', aom_model='2025-03-14', 
                  performance="requirement"):
 
         #initialize the model base
