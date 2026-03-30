@@ -534,7 +534,8 @@ class MAVIS_Imager(ImagingInstrument):
                            '50%': 'PSF_PC50_2025-05-14.fits',
                            '75%': 'PSF_PC75_2024-06-27.fits',
                            '90%': 'PSF_PC90_2024-06-27.fits',
-                           'TLR': 'PSF_TLRatmo_2024-08-28.fits'
+                           'TLR': 'PSF_TLRatmo_2024-08-28.fits',
+                           'faint': 'PSF_PC50_2025-05-14_faint.fits'
                            }
         ee_model = os.path.join(bfile_dir, 'mavis/{0}'.format(turbulence_dict[turbulence_cat]))
         self._ee_profile_wave = fits.getdata(ee_model, ext=0)/1e3

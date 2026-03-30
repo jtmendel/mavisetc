@@ -439,7 +439,8 @@ class MAVIS_IFS(IFSInstrument):
                            '75%': 'PSF_PC75_2024-06-27.fits',
                            '90%': 'PSF_PC90_2024-06-27.fits',
                            'TLR': 'PSF_TLRatmo_2024-08-28.fits',
-                           '50%-plus-spec': 'PSF_PC50_spec-{0}mas_2025-05-14.fits'.format(int(pix_scale*1e3))
+                           '50%-plus-spec': 'PSF_PC50_spec-{0}mas_2025-05-14.fits'.format(int(pix_scale*1e3)),
+                           'faint': 'PSF_PC50_spec-{0}mas_2025-05-14_faint.fits'.format(int(pix_scale*1e3))
                            }
             
         ee_model = os.path.join(bfile_dir, 'mavis/{0}'.format(turbulence_dict[turbulence_cat]))
