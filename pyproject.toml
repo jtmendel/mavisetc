@@ -16,7 +16,8 @@ requires-python = ">= 3.7"
 dependencies = [
     "skycalc_cli>=1.4",
     "scipy",
-    "astropy"
+    "astropy",
+    "numpy>=2.0"
 ]
 
 
