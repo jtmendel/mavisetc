@@ -35,7 +35,7 @@ class Filter(object):
 
         if self.pivot is None:
             wl, tran = self.trans_cache
-            self.pivot = np.sqrt(np.trapz(wl*tran, wl) / np.trapz(tran/wl, wl))
+            self.pivot = np.sqrt(np.trapezoid(wl*tran, wl) / np.trapezoid(tran/wl, wl))
 
         return self.pivot
 

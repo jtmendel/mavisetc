@@ -86,7 +86,7 @@ class template_source():
                                   ftrans, left=0., right=0.), dtype=float)
 
         #normalize transmission
-        ttrans = np.trapz(np.copy(trans_interp)/self.red_wavelength, self.red_wavelength)
+        ttrans = np.trapezoid(np.copy(trans_interp)/self.red_wavelength, self.red_wavelength)
         if ttrans < self.small_num: ttrans = 1.
         ntrans = np.maximum(trans_interp / ttrans, 0.0)
         
@@ -138,8 +138,8 @@ class template_source():
  
     def _get_mag(self):
         #compute observed frame magnitudes or flux
-        num = np.trapz(self.red_wavelength*self.template_flux*self.transmission, self.red_wavelength)
-        denom = np.trapz(self.red_wavelength*self.transmission, self.red_wavelength)
+        num = np.trapezoid(self.red_wavelength*self.template_flux*self.transmission, self.red_wavelength)
+        denom = np.trapezoid(self.red_wavelength*self.transmission, self.red_wavelength)
 
         return -2.5*np.log10(num/denom) - 48.6
                
@@ -234,7 +234,7 @@ class stellar_source():
                                   ftrans, left=0., right=0.), dtype=float)
 
         #normalize transmission
-        ttrans = np.trapz(np.copy(trans_interp)/self.red_wavelength, self.red_wavelength)
+        ttrans = np.trapezoid(np.copy(trans_interp)/self.red_wavelength, self.red_wavelength)
         if ttrans < self.small_num: ttrans = 1.
         ntrans = np.maximum(trans_interp / ttrans, 0.0)
         
@@ -293,8 +293,8 @@ class stellar_source():
 
     def _get_mag(self):
         #compute observed frame magnitudes or flux
-        num = np.trapz(self.red_wavelength*self.template_flux*self.transmission, self.red_wavelength)
-        denom = np.trapz(self.red_wavelength*self.transmission, self.red_wavelength)
+        num = np.trapezoid(self.red_wavelength*self.template_flux*self.transmission, self.red_wavelength)
+        denom = np.trapezoid(self.red_wavelength*self.transmission, self.red_wavelength)
 
         return -2.5*np.log10(num/denom) - 48.6
 

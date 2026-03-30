@@ -109,7 +109,7 @@ class sky_source():
                                   ftrans, left=0., right=0.), dtype=float)
 
         #normalize transmission
-        ttrans = np.trapz(np.copy(trans_interp)/wavelength, wavelength)
+        ttrans = np.trapezoid(np.copy(trans_interp)/wavelength, wavelength)
         if ttrans < self.small_num: ttrans = 1.
         ntrans = np.maximum(trans_interp / ttrans, 0.0)
         
@@ -159,15 +159,15 @@ class sky_source():
             self._set_filter(self.obs_band, self.wavelength)
 
         emm_cgs = np.copy(self.emm)*self.h*self.wavelength / 100**2 #erg/s/cm^2/Hz/arcsec^2
-        num = np.trapz(self.wavelength*emm_cgs*self.transmission, self.wavelength)
-        denom = np.trapz(self.wavelength*self.transmission, self.wavelength)
+        num = np.trapezoid(self.wavelength*emm_cgs*self.transmission, self.wavelength)
+        denom = np.trapezoid(self.wavelength*self.transmission, self.wavelength)
             
         self.default_sky_mag = -2.5*np.log10(num/denom) - 48.6
 
         if self.obs_mag is not None: #compute scale factor for the sky
             #emm_cgs = np.copy(self.emm)*self.h*self.wavelength / 100**2 #erg/s/cm^2/Hz/arcsec^2
-            #num = np.trapz(self.wavelength*emm_cgs*self.transmission, self.wavelength)
-            #denom = np.trapz(self.wavelength*self.transmission, self.wavelength)
+            #num = np.trapezoid(self.wavelength*emm_cgs*self.transmission, self.wavelength)
+            #denom = np.trapezoid(self.wavelength*self.transmission, self.wavelength)
             
             #mag = -2.5*np.log10(num/denom) - 48.6
             scale = 10**(-0.4*self.obs_mag)/10**(-0.4*self.default_sky_mag)

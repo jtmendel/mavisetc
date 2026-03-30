@@ -59,7 +59,7 @@ class ImagingInstrument:
                                   ftrans, left=0., right=0.), dtype=float)
 
         #normalize transmission
-        ttrans = np.trapz(np.copy(trans_interp), self.inst_wavelength)
+        ttrans = np.trapezoid(np.copy(trans_interp), self.inst_wavelength)
         if ttrans < self.small_num: ttrans = 1.
         ntrans = np.maximum(trans_interp / ttrans, 0.0)
         
@@ -383,8 +383,8 @@ class ImagingInstrument:
 
 
                 #compute an effetive pivot wavelength given the throughput
-                store_pivot.append(np.sqrt(np.trapz(self.transmission*self.trans_norm*self.inst_wavelength, self.inst_wavelength)/\
-                                   np.trapz(self.transmission*self.trans_norm/self.inst_wavelength, self.inst_wavelength)))
+                store_pivot.append(np.sqrt(np.trapezoid(self.transmission*self.trans_norm*self.inst_wavelength, self.inst_wavelength)/\
+                                   np.trapezoid(self.transmission*self.trans_norm/self.inst_wavelength, self.inst_wavelength)))
     
             return store_pivot, store_obs, store_perf #check that these are reasonable magnitudes?
 

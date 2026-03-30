@@ -44,7 +44,7 @@ class flat_source():
                                   ftrans, left=0., right=0.), dtype=float)
 
         #normalize transmission
-        ttrans = np.trapz(np.copy(trans_interp)/self.wavelength, self.wavelength)
+        ttrans = np.trapezoid(np.copy(trans_interp)/self.wavelength, self.wavelength)
         if ttrans < self.small_num: ttrans = 1.
         ntrans = np.maximum(trans_interp / ttrans, 0.0)
         
@@ -77,8 +77,8 @@ class flat_source():
 
     def _get_mag(self):
         #compute observed frame magnitudes or flux
-        num = np.trapz(self.wavelength*self.flux*self.transmission, self.wavelength)
-        denom = np.trapz(self.wavelength*self.transmission, self.wavelength)
+        num = np.trapezoid(self.wavelength*self.flux*self.transmission, self.wavelength)
+        denom = np.trapezoid(self.wavelength*self.transmission, self.wavelength)
 
         return -2.5*np.log10(num/denom) - 48.6
     
