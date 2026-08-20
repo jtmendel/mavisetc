@@ -230,3 +230,6 @@ include mavisetc/data/filters/jwst_f070w.dat
 include mavisetc/data/filters/hst_acs_f435w.dat
 include mavisetc/data/filters/hst_acs_f475w.dat
 include mavisetc/data/filters/jwst_f090w.dat
+include mavisetc/data/filters/gaia_bp.dat
+include mavisetc/data/filters/gaia_pp.dat
+include mavisetc/data/filters/gaia_g.dat
